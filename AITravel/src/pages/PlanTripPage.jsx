@@ -1,0 +1,410 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTrip } from '../context/TripContext';
+import {
+  MapPin,
+  Search,
+  Crosshair,
+  Sun,
+  Heart,
+  Sparkles,
+  ArrowRight,
+  Compass,
+  Calendar,
+  Users,
+  DollarSign,
+  Shield,
+  Layers,
+  Check,
+  Building,
+  Utensils,
+  ChevronRight,
+} from 'lucide-react';
+import AIChatDrawer from '../components/AIChatDrawer';
+
+const PlanTripPage = () => {
+  const navigate = useNavigate();
+  const { plannerState, updatePlannerField, generateTripPlan } = useTrip();
+
+  const [step, setStep] = useState(1);
+  const [destinationInput, setDestinationInput] = useState(plannerState.destination || 'Goa, India');
+  const [selectedDestKey, setSelectedDestKey] = useState('Goa, India');
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+
+  // Destination Metadata database for rich preview card
+  const destinationData = {
+    'Goa, India': {
+      name: 'Goa, India',
+      region: 'WEST COAST, ARABIAN SEA',
+      badge: 'Popular Tropical Destination',
+      bestTime: 'Oct – Apr',
+      desc: 'Golden sands, vibrant nightlife, historic Portuguese architecture, and coastal seafood. Ideal balance of leisurely seaside retreats and electric night markets.',
+      flight: '1h 20m • Direct',
+      vibe: 'Coastal & Relaxed',
+      safety: '9.4 / 10 Verified',
+      climate: 'Tropical Microclimate',
+      climateDesc: 'Calm seas, moderate humidity',
+      temp: '28°C',
+      img: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80',
+    },
+    'Mumbai, India': {
+      name: 'Mumbai, India',
+      region: 'MAHARASHTRA, ARABIAN SEA',
+      badge: 'Bustling Metropolis',
+      bestTime: 'Nov – Feb',
+      desc: 'City of dreams with colonial architecture, high-energy street food, iconic sea links, and vibrant Bollywood culture.',
+      flight: 'Direct Global Hub',
+      vibe: 'High Energy & Heritage',
+      safety: '9.1 / 10 Verified',
+      climate: 'Coastal Warm',
+      climateDesc: 'Pleasant evening breezes',
+      temp: '30°C',
+      img: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1200&q=80',
+    },
+    'Dubai, UAE': {
+      name: 'Dubai, UAE',
+      region: 'PERSIAN GULF',
+      badge: 'Luxury Oasis',
+      bestTime: 'Nov – Mar',
+      desc: 'Hyper-futuristic skyline, pristine desert safaris, Michelin dining, world-class theme parks, and architectural marvels.',
+      flight: '3h 30m • Direct',
+      vibe: 'Glamour & Adventure',
+      safety: '9.8 / 10 Verified',
+      climate: 'Desert Warm',
+      climateDesc: 'Clear sunny skies, cool nights',
+      temp: '26°C',
+      img: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=1200&q=80',
+    },
+    'Bali, Indonesia': {
+      name: 'Bali, Indonesia',
+      region: 'INDONESIAN ARCHIPELAGO',
+      badge: 'Island Paradise',
+      bestTime: 'Apr – Oct',
+      desc: 'Sacred water temples, emerald rice terraces in Ubud, vibrant beach clubs in Seminyak, and volcanic hiking trails.',
+      flight: '5h 45m • 1 Stop',
+      vibe: 'Spiritual & Tropical',
+      safety: '9.3 / 10 Verified',
+      climate: 'Equatorial Tropics',
+      climateDesc: 'Lush greenery, light breeze',
+      temp: '29°C',
+      img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80',
+    },
+    'Tokyo, Japan': {
+      name: 'Tokyo, Japan',
+      region: 'KANTO REGION, HONSHU',
+      badge: 'Futuristic Heritage',
+      bestTime: 'Mar – May & Sep – Nov',
+      desc: 'Neon-lit Shibuya crossings, historic Asakusa shrines, Michelin ramen alleys, bullet trains, and world-class hospitality.',
+      flight: '7h 15m • Direct',
+      vibe: 'Electric & Immersive',
+      safety: '9.9 / 10 Verified',
+      climate: 'Temperate Crisp',
+      climateDesc: 'Clear air, moderate season',
+      temp: '18°C',
+      img: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80',
+    },
+  };
+
+  const currentPreview = destinationData[selectedDestKey] || destinationData['Goa, India'];
+
+  const handleSelectTrending = (dest) => {
+    setSelectedDestKey(dest);
+    setDestinationInput(dest);
+    updatePlannerField('destination', dest);
+  };
+
+  const handleNextStep = () => {
+    if (step < 6) {
+      setStep(step + 1);
+    } else {
+      navigate('/generating');
+    }
+  };
+
+  const stepsList = [
+    { num: 1, label: 'Destination' },
+    { num: 2, label: 'Travelers' },
+    { num: 3, label: 'Dates' },
+    { num: 4, label: 'Preferences' },
+    { num: 5, label: 'Budget' },
+    { num: 6, label: 'Review & AI' },
+  ];
+
+  return (
+    <div className="plan-page-root">
+      {/* Top Header Row */}
+      <div className="plan-header-row">
+        <div>
+          <div className="plan-header-badge">
+            <span>AUTONOMOUS PLANNER V4.2</span> • <span>📄 Generative Engine Ready</span>
+          </div>
+          <h1 className="plan-main-title">Design Your Custom Journey</h1>
+          <p className="plan-subtitle">
+            Configure destination, travelers, cadence, and vibe. Our neural agent synthesizes bookings, flight corridors, and bespoke itineraries in seconds.
+          </p>
+        </div>
+
+        {/* AI Synthesis Probability Card Widget */}
+        <div className="ai-synthesis-widget">
+          <div className="synthesis-icon-box">
+            <Layers size={18} />
+          </div>
+          <div>
+            <div className="synthesis-label">AI SYNTHESIS PROBABILITY</div>
+            <div className="synthesis-val">{step * 16}% ready</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 6-Step Stepper Pill Bar */}
+      <div className="stepper-pill-bar">
+        {stepsList.map((s, idx) => (
+          <div key={s.num} style={{ display: 'flex', alignItems: 'center' }}>
+            <div
+              className={`stepper-pill-item ${step === s.num ? 'active' : ''}`}
+              onClick={() => setStep(s.num)}
+            >
+              <div className="stepper-num-badge">{s.num}</div>
+              <span>{s.label}</span>
+            </div>
+            {idx < stepsList.length - 1 && <span className="stepper-arrow-sep">›</span>}
+          </div>
+        ))}
+      </div>
+
+      {/* ===================================================================
+          STEP 1: GEOGRAPHY
+          =================================================================== */}
+      {step === 1 && (
+        <div className="plan-step-grid">
+          {/* Left Column: Form */}
+          <div className="plan-form-card">
+            <div className="form-step-tag">STEP 01 • GEOGRAPHY</div>
+            <h2 className="form-step-heading">Where are we going?</h2>
+            <p className="form-step-sub">Type any global destination, island, regional cluster, or cultural zone.</p>
+
+            <div className="search-input-box-wrap">
+              <Search size={16} color="#64748b" />
+              <input
+                type="text"
+                value={destinationInput}
+                onChange={(e) => {
+                  setDestinationInput(e.target.value);
+                  updatePlannerField('destination', e.target.value);
+                }}
+                placeholder="Type destination..."
+              />
+              <Crosshair size={16} color="#025a9e" style={{ cursor: 'pointer' }} />
+            </div>
+
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>
+              TRENDING DESTINATIONS
+            </div>
+
+            <div className="trending-dest-row">
+              {['Goa, India', 'Mumbai, India', 'Dubai, UAE', 'Bali, Indonesia', 'Tokyo, Japan'].map((t) => (
+                <div
+                  key={t}
+                  className={`trending-chip-pill ${selectedDestKey === t ? 'active' : ''}`}
+                  onClick={() => handleSelectTrending(t)}
+                >
+                  <MapPin size={12} />
+                  <span>{t}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Climate Box */}
+            <div className="climate-box">
+              <div className="climate-left">
+                <Sun size={24} color="#f59e0b" />
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
+                    {currentPreview.climate}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    {currentPreview.climateDesc}
+                  </div>
+                </div>
+              </div>
+
+              <div className="climate-temp-huge">
+                {currentPreview.temp}
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#16a34a' }}>Optimal Season</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Destination Image Preview Card */}
+          <div
+            className="dest-preview-hero-card"
+            style={{ backgroundImage: `url(${currentPreview.img})` }}
+          >
+            <div className="dest-preview-top-row">
+              <span className="dest-pill-badge-white">☆ {currentPreview.badge}</span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span className="dest-pill-badge-white">Best time: {currentPreview.bestTime}</span>
+                <button className="dest-fav-circle">
+                  <Heart size={14} fill="#ef4444" />
+                </button>
+              </div>
+            </div>
+
+            <div className="dest-preview-bottom-content">
+              <div className="dest-region-subtitle">🧭 {currentPreview.region}</div>
+              <h2 className="dest-hero-title">{currentPreview.name}</h2>
+              <p className="dest-hero-desc">{currentPreview.desc}</p>
+
+              <div className="dest-3metrics-bar">
+                <div>
+                  <div className="metric-col-title">Avg Flight (BOM/DEL)</div>
+                  <div className="metric-col-val">{currentPreview.flight}</div>
+                </div>
+                <div>
+                  <div className="metric-col-title">Vibe Index</div>
+                  <div className="metric-col-val">{currentPreview.vibe}</div>
+                </div>
+                <div>
+                  <div className="metric-col-title">Safety Rating</div>
+                  <div className="metric-col-val">{currentPreview.safety}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================
+          STEPS 2-6: Config Forms (Travelers, Dates, Preferences, Budget, Review)
+          =================================================================== */}
+      {step === 2 && (
+        <div className="plan-form-card" style={{ maxWidth: 800, margin: '0 auto' }}>
+          <div className="form-step-tag">STEP 02 • PARTY DYNAMICS</div>
+          <h2 className="form-step-heading">Who is traveling?</h2>
+          <p className="form-step-sub">Select your party structure for room sizing and pacing formulas.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginTop: 16 }}>
+            {[
+              { type: 'Solo', count: 1, label: 'Solo Explorer', sub: 'Independent & flexible pacing' },
+              { type: 'Couple', count: 2, label: 'Couple / Duo', sub: 'Romantic stays & boutique dining' },
+              { type: 'Family', count: 4, label: 'Family with Kids', sub: 'Kid-friendly, relaxed schedules' },
+              { type: 'Friends', count: 4, label: 'Friends Group', sub: 'Social activities & nightlife' },
+            ].map((opt) => (
+              <div
+                key={opt.type}
+                className={`selection-card ${plannerState.travelers.type === opt.type ? 'selected' : ''}`}
+                onClick={() => updatePlannerField('travelers', { type: opt.type, count: opt.count })}
+              >
+                <h4>{opt.label}</h4>
+                <p>{opt.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="plan-form-card" style={{ maxWidth: 800, margin: '0 auto' }}>
+          <div className="form-step-tag">STEP 03 • SCHEDULE & CADENCE</div>
+          <h2 className="form-step-heading">Trip Duration & Dates</h2>
+          <p className="form-step-sub">Select duration in days ({plannerState.duration} Days)</p>
+          <input
+            type="range"
+            min="1"
+            max="14"
+            value={plannerState.duration}
+            onChange={(e) => updatePlannerField('duration', Number(e.target.value))}
+            className="range-slider"
+            style={{ margin: '20px 0' }}
+          />
+          <div style={{ display: 'flex', gap: 16 }}>
+            <input type="date" value={plannerState.startDate} onChange={(e) => updatePlannerField('startDate', e.target.value)} style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 8 }} />
+            <input type="date" value={plannerState.endDate} onChange={(e) => updatePlannerField('endDate', e.target.value)} style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 8 }} />
+          </div>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="plan-form-card" style={{ maxWidth: 800, margin: '0 auto' }}>
+          <div className="form-step-tag">STEP 04 • PALATE & VIBE</div>
+          <h2 className="form-step-heading">Personalize Your Preferences</h2>
+          <p className="form-step-sub">Select your preferred stays and activities.</p>
+          <div className="chips-container" style={{ margin: '20px 0' }}>
+            {['Luxury Resort', 'Boutique Hotel', 'Vegetarian Cafes', 'Seafood Bistros', 'Beaches & Sunset', 'Historic Forts', 'Nightlife', 'Water Sports'].map((pref) => (
+              <button
+                key={pref}
+                className="chip-btn active"
+                style={{ padding: '8px 16px' }}
+              >
+                {pref}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {step === 5 && (
+        <div className="plan-form-card" style={{ maxWidth: 800, margin: '0 auto' }}>
+          <div className="form-step-tag">STEP 05 • FINANCIAL TARGET</div>
+          <h2 className="form-step-heading">Set Estimated Total Budget</h2>
+          <p className="form-step-sub">We forecast flights, hotels, food, and activities down to the rupee.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#025a9e' }}>₹</span>
+            <input
+              type="number"
+              value={plannerState.budget}
+              onChange={(e) => updatePlannerField('budget', Number(e.target.value))}
+              style={{ fontSize: '1.8rem', fontWeight: 800, padding: '8px 16px', border: '1px solid #cbd5e1', borderRadius: 8, width: 240 }}
+            />
+          </div>
+        </div>
+      )}
+
+      {step === 6 && (
+        <div className="plan-form-card" style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
+          <div className="form-step-tag">STEP 06 • AI SYNTHESIS</div>
+          <h2 className="form-step-heading">Ready to Generate Your Itinerary</h2>
+          <p className="form-step-sub">Gemini AI + Google Places are ready to structure your customized trip to {plannerState.destination}.</p>
+          <button
+            className="btn-continue-pill"
+            style={{ margin: '24px auto 0', padding: '16px 36px', fontSize: '1.1rem' }}
+            onClick={() => navigate('/generating')}
+          >
+            <Sparkles size={18} />
+            <span>Generate Full AI Itinerary</span>
+          </button>
+        </div>
+      )}
+
+      {/* Bottom Action Bar */}
+      <div className="planner-bottom-action-bar">
+        {step < 6 ? (
+          <button className="btn-continue-pill" onClick={handleNextStep}>
+            <span>Continue to {stepsList[step]?.label || 'Next'}</span>
+            <ArrowRight size={16} />
+          </button>
+        ) : null}
+
+        <button className="btn-ask-float-pill" onClick={() => setIsAIChatOpen(true)}>
+          <Sparkles size={16} />
+          <span>Ask TravelAI</span>
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {/* Floating AI Chat Assistant Drawer */}
+      <AIChatDrawer
+        isOpen={isAIChatOpen}
+        onClose={() => setIsAIChatOpen(false)}
+        trip={{
+          destination: destinationInput,
+          duration: plannerState.duration || 5,
+          budget: plannerState.budget || 50000,
+          currency: 'INR',
+          travelers: plannerState.travelers,
+        }}
+      />
+    </div>
+  );
+};
+
+export default PlanTripPage;
