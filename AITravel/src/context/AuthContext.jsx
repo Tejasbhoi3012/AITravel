@@ -8,6 +8,12 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('travelai_token') || null);
   const [loading, setLoading] = useState(true);
 
+  const logout = () => {
+    localStorage.removeItem('travelai_token');
+    setToken(null);
+    setUser(null);
+  };
+
   useEffect(() => {
     const fetchCurrentUser = async () => {
       if (token) {
@@ -18,7 +24,9 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (error) {
           console.warn('Session expired or invalid token:', error.message);
-          logout();
+          localStorage.removeItem('travelai_token');
+          setToken(null);
+          setUser(null);
         }
       }
       setLoading(false);
@@ -63,12 +71,6 @@ export const AuthProvider = ({ children }) => {
       setUser(data.user);
     }
     return data;
-  };
-
-  const logout = () => {
-    localStorage.removeItem('travelai_token');
-    setToken(null);
-    setUser(null);
   };
 
   return (

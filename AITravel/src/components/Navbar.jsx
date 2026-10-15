@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Compass, Search, Bell, Sparkles } from 'lucide-react';
+import { Compass, Search, Bell } from 'lucide-react';
 
 const Navbar = () => {
   const { user, isAuthenticated } = useAuth();

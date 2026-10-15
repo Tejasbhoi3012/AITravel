@@ -63,7 +63,7 @@ const RestaurantsSection = ({ restaurants = [], onFocusLocation, onAddPlaceToIti
               />
               <div className="card-badge rating-badge">
                 <Star size={13} className="star-icon" />
-                <span>{resto.rating || '4.6'}</span>
+                <span>{resto.rating ? resto.rating : 'Unrated'}</span>
                 {resto.userRatingsTotal ? <small>({resto.userRatingsTotal})</small> : null}
               </div>
             </div>

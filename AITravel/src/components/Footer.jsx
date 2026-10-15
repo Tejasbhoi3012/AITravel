@@ -1,4 +1,4 @@
-import { Compass, Shield, Zap, Globe } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import { useState } from 'react';
 
 const Footer = () => {

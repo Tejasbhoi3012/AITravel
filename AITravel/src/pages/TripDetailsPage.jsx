@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTrip } from '../context/TripContext';
-import * as tripService from '../services/tripService';
 import {
   MapPin,
   Calendar,
@@ -9,22 +8,12 @@ import {
   IndianRupee,
   Share2,
   Sparkles,
-  MessageSquare,
   Building,
-  Utensils,
-  Compass,
-  PieChart,
-  Map,
-  Check,
-  ArrowLeft,
   FileText,
   Edit3,
   Sun,
   Clock,
-  Car,
-  CheckCircle2,
   ExternalLink,
-  Plus,
 } from 'lucide-react';
 
 import HotelsSection from '../components/HotelsSection';
@@ -37,7 +26,7 @@ import AIBudgetOptimizerModal from '../components/AIBudgetOptimizerModal';
 
 const TripDetailsPage = () => {
   const { id } = useParams();
-  const { currentTrip, setCurrentTrip } = useTrip();
+  const { currentTrip, loadTrip } = useTrip();
 
   const [trip, setTrip] = useState(currentTrip);
   const [loading, setLoading] = useState(false);
@@ -47,6 +36,43 @@ const TripDetailsPage = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+
+  // Sync with context + fetch by id when landing directly on /trip/:id
+  useEffect(() => {
+    if (currentTrip) {
+      setTrip(currentTrip);
+      return;
+    }
+    // Skip client-side fallback ids (trip_<timestamp>) — nothing to fetch
+    if (!id || id.startsWith('trip_')) return;
+    let cancelled = false;
+    const fetchById = async () => {
+      setLoading(true);
+      try {
+        const loaded = await loadTrip(id);
+        if (!cancelled && loaded) setTrip(loaded);
+      } catch {
+        // Keep hardcoded demo fallback below
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchById();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, currentTrip, loadTrip]);
+
+  const activeTrip = trip || currentTrip;
+
+  if (loading) {
+    return (
+      <div className="page-loading-spinner">
+        <div className="spinner"></div>
+        <p>Loading trip details...</p>
+      </div>
+    );
+  }
 
   // Day list
   const daysList = [
@@ -402,7 +428,7 @@ const TripDetailsPage = () => {
                 </div>
                 <iframe
                   title="Goa Map"
-                  src="https://maps.google.com/maps?q=15.2993,74.1240&hl=en&z=11&output=embed"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${74.124 - 0.2}%2C${15.2993 - 0.12}%2C${74.124 + 0.2}%2C${15.2993 + 0.12}&layer=mapnik&marker=15.2993%2C74.124`}
                   width="100%"
                   height="160"
                   style={{ border: 0 }}
@@ -419,24 +445,31 @@ const TripDetailsPage = () => {
 
       {/* TAB 2: MAP VIEW */}
       {activeTab === 'map' && (
-        <MapView center={{ lat: 15.2993, lng: 74.124 }} destination="Goa, India" />
+        <MapView
+          center={{ lat: activeTrip?.latitude || 15.2993, lng: activeTrip?.longitude || 74.124 }}
+          destination={activeTrip?.destination || 'Goa, India'}
+          hotels={activeTrip?.hotels || []}
+          restaurants={activeTrip?.restaurants || []}
+          places={activeTrip?.places || []}
+        />
       )}
 
       {/* TAB 3: HOTELS */}
-      {activeTab === 'hotels' && <HotelsSection />}
+      {activeTab === 'hotels' && <HotelsSection hotels={activeTrip?.hotels || []} />}
 
       {/* TAB 4: RESTAURANTS */}
-      {activeTab === 'restaurants' && <RestaurantsSection />}
+      {activeTab === 'restaurants' && <RestaurantsSection restaurants={activeTrip?.restaurants || []} />}
 
       {/* TAB 5: PLACES */}
-      {activeTab === 'places' && <PlacesSection />}
+      {activeTab === 'places' && <PlacesSection places={activeTrip?.places || []} />}
 
       {/* TAB 6: EXPENSES */}
       {activeTab === 'expenses' && (
         <ExpenseDashboard
-          budget={42500}
-          currency="INR"
-          travelers={{ count: 2 }}
+          expenses={activeTrip?.expenses || {}}
+          budget={activeTrip?.budget || 42500}
+          currency={activeTrip?.currency || 'INR'}
+          travelers={activeTrip?.travelers || { count: 2 }}
           onOpenAIOptimizer={() => setIsOptimizerOpen(true)}
         />
       )}
@@ -456,11 +489,11 @@ const TripDetailsPage = () => {
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
         trip={{
-          destination: 'Goa, India',
-          duration: 5,
-          budget: 42500,
-          currency: 'INR',
-          travelers: { count: 2, type: 'Couple' },
+          destination: activeTrip?.destination || 'Goa, India',
+          duration: activeTrip?.duration || 5,
+          budget: activeTrip?.budget || 42500,
+          currency: activeTrip?.currency || 'INR',
+          travelers: activeTrip?.travelers || { count: 2, type: 'Couple' },
         }}
       />
 
@@ -469,11 +502,11 @@ const TripDetailsPage = () => {
         isOpen={isOptimizerOpen}
         onClose={() => setIsOptimizerOpen(false)}
         trip={{
-          destination: 'Goa, India',
-          duration: 5,
-          budget: 42500,
-          currency: 'INR',
-          travelers: { count: 2, type: 'Couple' },
+          destination: activeTrip?.destination || 'Goa, India',
+          duration: activeTrip?.duration || 5,
+          budget: activeTrip?.budget || 42500,
+          currency: activeTrip?.currency || 'INR',
+          travelers: activeTrip?.travelers || { count: 2, type: 'Couple' },
         }}
       />
     </div>

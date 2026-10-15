@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, DollarSign, Compass, Check, AlertCircle } from 'lucide-react';
+import { User, Check, AlertCircle } from 'lucide-react';
 
 const ProfilePage = () => {
   const { user, updateProfile } = useAuth();

@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Clock, MapPin, DollarSign, Plus, Trash2, Edit2, Check, ArrowDown } from 'lucide-react';
+import { Clock, MapPin, DollarSign, Plus, Trash2 } from 'lucide-react';
 
 const ItinerarySection = ({ itinerary = [], currency = 'USD', onUpdateTrip, onFocusLocation }) => {
   const [activeDay, setActiveDay] = useState(1);
-  const [editingActivityId, setEditingActivityId] = useState(null);
   const [newActivityTitle, setNewActivityTitle] = useState('');
   const [newActivityTime, setNewActivityTime] = useState('11:00 AM');
   const [newActivityCost, setNewActivityCost] = useState(20);

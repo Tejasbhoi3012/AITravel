@@ -9,7 +9,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, googleLogin } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -31,17 +31,12 @@ const LoginPage = () => {
     setEmail('traveler@example.com');
     setPassword('traveler123');
     setLoading(true);
+    setError('');
     try {
       await login('traveler@example.com', 'traveler123');
       navigate('/my-trips');
-    } catch (err) {
-      // If demo user doesn't exist yet, try registering them
-      try {
-        await login(email, password);
-        navigate('/my-trips');
-      } catch (e2) {
-        setError('Please sign up for a new account.');
-      }
+    } catch {
+      setError('Demo login failed. Please sign up for a new account.');
     } finally {
       setLoading(false);
     }
@@ -97,6 +92,10 @@ const LoginPage = () => {
           <button type="submit" className="btn-auth-submit" disabled={loading}>
             <LogIn size={18} />
             <span>{loading ? 'Signing In...' : 'Sign In'}</span>
+          </button>
+
+          <button type="button" className="btn-auth-submit btn-demo-login" disabled={loading} onClick={handleDemoLogin} style={{ marginTop: 10, background: '#f1f5f9', color: '#0f172a' }}>
+            <span>{loading ? 'Please wait...' : 'Try Demo Account'}</span>
           </button>
         </form>
 

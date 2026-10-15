@@ -22,7 +22,7 @@ const HotelsSection = ({ hotels = [], onFocusLocation, onAddPlaceToItinerary }) 
             />
             <div className="card-badge rating-badge">
               <Star size={13} className="star-icon" />
-              <span>{hotel.rating || '4.5'}</span>
+              <span>{hotel.rating ? hotel.rating : 'Unrated'}</span>
               {hotel.userRatingsTotal ? <small>({hotel.userRatingsTotal})</small> : null}
             </div>
           </div>

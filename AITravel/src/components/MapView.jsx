@@ -1,5 +1,49 @@
-import { useEffect, useRef, useState } from 'react';
-import { MapPin, Navigation, Building, Utensils, Compass, ExternalLink, Layers, Eye } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Navigation } from 'lucide-react';
+
+const CATEGORY_COLORS = {
+  hotel: '#025a9e',
+  restaurant: '#d97706',
+  place: '#059669',
+};
+
+// Flies the Leaflet map to the focused pin and fits all pins on filter change.
+// No API key, no billing — tiles come from OpenStreetMap.
+const MapController = ({ focus, items }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (focus && focus.lat && focus.lng) {
+      map.flyTo([focus.lat, focus.lng], 14, { duration: 0.8 });
+    }
+  }, [map, focus?.lat, focus?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (items && items.length > 0) {
+      map.fitBounds(
+        items.map((i) => [i.lat, i.lng]),
+        { padding: [32, 32] }
+      );
+    }
+  }, [map, items]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+};
+
+const normalize = (item, type) => ({
+  ...item,
+  name: item.name || 'Unnamed location',
+  lat: Number(item.lat ?? item.latitude) || 0,
+  lng: Number(item.lng ?? item.longitude) || 0,
+  category: type,
+});
+
+const ratingLabel = (item) => {
+  if (item.rating) return `★ ${item.rating}`;
+  return 'Unrated • OSM';
+};
 
 const MapView = ({
   center = { lat: 15.2993, lng: 74.124 },
@@ -9,159 +53,75 @@ const MapView = ({
   places = [],
   focusedLocation = null,
 }) => {
-  const mapApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-  const mapRef = useRef(null);
-  const googleMapInstance = useRef(null);
-  const markersRef = useRef([]);
-  const infoWindowRef = useRef(null);
-
   const [activeCategory, setActiveCategory] = useState('all');
-  const [mapLoaded, setMapLoaded] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [focus, setFocus] = useState(null);
 
-  const defaultHotels = hotels.length > 0 ? hotels : [
-    { name: 'Casa De Goa Boutique Resort', lat: 15.5435, lng: 73.7554, type: 'hotel', rating: 4.6, price: '₹4,500/night', desc: 'Portuguese style luxury resort near Calangute beach' },
-    { name: 'Taj Fort Aguada Resort & Spa', lat: 15.4989, lng: 73.7667, type: 'hotel', rating: 4.8, price: '₹12,000/night', desc: '5-star cliffside luxury overlooking Sinquerim beach' },
-    { name: 'W Goa Beach Resort', lat: 15.6022, lng: 73.7388, type: 'hotel', rating: 4.7, price: '₹14,500/night', desc: 'Vagator beachfront modern luxury resort' },
-  ];
+  const allItems = useMemo(() => {
+    const baseHotels = (hotels.length > 0 ? hotels : [
+      { name: 'Casa De Goa Boutique Resort', lat: 15.5435, lng: 73.7554, rating: 4.6, price: '₹4,500/night', desc: 'Portuguese style luxury resort near Calangute beach' },
+      { name: 'Taj Fort Aguada Resort & Spa', lat: 15.4989, lng: 73.7667, rating: 4.8, price: '₹12,000/night', desc: '5-star cliffside luxury overlooking Sinquerim beach' },
+      { name: 'W Goa Beach Resort', lat: 15.6022, lng: 73.7388, rating: 4.7, price: '₹14,500/night', desc: 'Vagator beachfront modern luxury resort' },
+    ]).map((h) => normalize(h, 'hotel'));
 
-  const defaultRestaurants = restaurants.length > 0 ? restaurants : [
-    { name: 'Navtara Pure Veg Coastal Diner', lat: 15.5412, lng: 73.7589, type: 'restaurant', rating: 4.5, price: '₹600 for two', desc: 'Authentic Goan vegetarian thali & coastal dosas' },
-    { name: "Souza Lobo & Tito's Lane", lat: 15.5398, lng: 73.7512, type: 'restaurant', rating: 4.6, price: '₹1,400 for two', desc: 'Iconic beachside seafood & Goan curries with live music' },
-    { name: 'Gunpowder Assagao', lat: 15.5891, lng: 73.7745, type: 'restaurant', rating: 4.7, price: '₹1,200 for two', desc: 'South Indian coastal specialty in a heritage garden villa' },
-  ];
+    const baseRestaurants = (restaurants.length > 0 ? restaurants : [
+      { name: 'Navtara Pure Veg Coastal Diner', lat: 15.5412, lng: 73.7589, rating: 4.5, price: '₹600 for two', desc: 'Authentic Goan vegetarian thali & coastal dosas' },
+      { name: "Souza Lobo & Tito's Lane", lat: 15.5398, lng: 73.7512, rating: 4.6, price: '₹1,400 for two', desc: 'Iconic beachside seafood & Goan curries with live music' },
+      { name: 'Gunpowder Assagao', lat: 15.5891, lng: 73.7745, rating: 4.7, price: '₹1,200 for two', desc: 'South Indian coastal specialty in a heritage garden villa' },
+    ]).map((r) => normalize(r, 'restaurant'));
 
-  const defaultPlaces = places.length > 0 ? places : [
-    { name: 'Fort Aguada & Lighthouse', lat: 15.4925, lng: 73.7736, type: 'place', rating: 4.7, price: '₹50 entry', desc: '17th-century Portuguese coastal fortress and sunset lookout' },
-    { name: 'Baga & Calangute Beach Strip', lat: 15.5524, lng: 73.7517, type: 'place', rating: 4.5, price: 'Free access', desc: 'Lively golden sands, shacks, and exhilarating watersports' },
-    { name: 'Chapora Fort (Dil Chahta Hai)', lat: 15.6058, lng: 73.7369, type: 'place', rating: 4.6, price: 'Free access', desc: 'Panoramic hilltop fortress overlooking Vagator and Ozran' },
-    { name: 'Basilica of Bom Jesus (Old Goa)', lat: 15.5009, lng: 73.9116, type: 'place', rating: 4.8, price: 'Free access', desc: 'UNESCO World Heritage site with baroque Portuguese architecture' },
-  ];
+    const basePlaces = (places.length > 0 ? places : [
+      { name: 'Fort Aguada & Lighthouse', lat: 15.4925, lng: 73.7736, rating: 4.7, price: '₹50 entry', desc: '17th-century Portuguese coastal fortress and sunset lookout' },
+      { name: 'Baga & Calangute Beach Strip', lat: 15.5524, lng: 73.7517, rating: 4.5, price: 'Free access', desc: 'Lively golden sands, shacks, and exhilarating watersports' },
+      { name: 'Chapora Fort (Dil Chahta Hai)', lat: 15.6058, lng: 73.7369, rating: 4.6, price: 'Free access', desc: 'Panoramic hilltop fortress overlooking Vagator and Ozran' },
+      { name: 'Basilica of Bom Jesus (Old Goa)', lat: 15.5009, lng: 73.9116, rating: 4.8, price: 'Free access', desc: 'UNESCO World Heritage site with baroque Portuguese architecture' },
+    ]).map((p) => normalize(p, 'place'));
 
-  const allItems = [
-    ...defaultHotels.map(h => ({ ...h, category: 'hotel' })),
-    ...defaultRestaurants.map(r => ({ ...r, category: 'restaurant' })),
-    ...defaultPlaces.map(p => ({ ...p, category: 'place' })),
-  ];
+    return [...baseHotels, ...baseRestaurants, ...basePlaces].filter((i) => i.lat && i.lng);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hotels.length, restaurants.length, places.length, destination]);
 
-  const filteredItems = activeCategory === 'all'
-    ? allItems
-    : allItems.filter(item => item.category === activeCategory);
+  const filteredItems = useMemo(() => (
+    activeCategory === 'all' ? allItems : allItems.filter((item) => item.category === activeCategory)
+  ), [allItems, activeCategory]);
 
-  const activeLat = focusedLocation?.lat || center?.lat || 15.2993;
-  const activeLng = focusedLocation?.lng || center?.lng || 74.124;
+  const hotelCount = useMemo(() => allItems.filter((i) => i.category === 'hotel').length, [allItems]);
+  const restaurantCount = useMemo(() => allItems.filter((i) => i.category === 'restaurant').length, [allItems]);
+  const placeCount = useMemo(() => allItems.filter((i) => i.category === 'place').length, [allItems]);
 
-  // Load Google Maps JS script
-  useEffect(() => {
-    if (!mapApiKey) return;
-
-    if (window.google && window.google.maps) {
-      initMap();
-      return;
-    }
-
-    const existingScript = document.getElementById('google-maps-js-sdk');
-    if (!existingScript) {
-      const script = document.createElement('script');
-      script.id = 'google-maps-js-sdk';
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${mapApiKey}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => initMap();
-      script.onerror = () => {
-        console.warn('Google Maps script failed to load. Using fallback view.');
-        setMapLoaded(false);
-      };
-      document.head.appendChild(script);
-    } else {
-      existingScript.addEventListener('load', initMap);
-    }
-
-    function initMap() {
-      if (!mapRef.current || !window.google) return;
-
-      try {
-        const map = new window.google.maps.Map(mapRef.current, {
-          center: { lat: activeLat, lng: activeLng },
-          zoom: 11,
-          styles: [
-            { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'on' }] },
-            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cbe7f7' }] },
-          ],
-        });
-
-        googleMapInstance.current = map;
-        infoWindowRef.current = new window.google.maps.InfoWindow();
-        setMapLoaded(true);
-      } catch (err) {
-        console.warn('Could not initialize Google Map JS:', err);
-      }
-    }
-  }, [mapApiKey, activeLat, activeLng]);
-
-  // Update Markers on filter change
-  useEffect(() => {
-    if (!googleMapInstance.current || !window.google) return;
-
-    // Clear old markers
-    markersRef.current.forEach(m => m.setMap(null));
-    markersRef.current = [];
-
-    const bounds = new window.google.maps.LatLngBounds();
-
-    filteredItems.forEach((item) => {
-      if (!item.lat || !item.lng) return;
-
-      const position = { lat: item.lat, lng: item.lng };
-      bounds.extend(position);
-
-      const color = item.category === 'hotel' ? '#025a9e' : item.category === 'restaurant' ? '#d97706' : '#059669';
-
-      const marker = new window.google.maps.Marker({
-        position,
-        map: googleMapInstance.current,
-        title: item.name,
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: color,
-          fillOpacity: 1,
-          strokeWeight: 2,
-          strokeColor: '#ffffff',
-        },
-      });
-
-      marker.addListener('click', () => {
-        setSelectedItem(item);
-        if (infoWindowRef.current) {
-          infoWindowRef.current.setContent(`
-            <div style="padding: 6px 8px; font-family: sans-serif; max-width: 200px;">
-              <strong style="font-size: 13px; color: #0f172a;">${item.name}</strong>
-              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${item.price || ''}</div>
-              <div style="font-size: 11px; color: #025a9e; font-weight: 700; margin-top: 4px;">★ ${item.rating || '4.5'}</div>
-            </div>
-          `);
-          infoWindowRef.current.open(googleMapInstance.current, marker);
-        }
-      });
-
-      markersRef.current.push(marker);
-    });
-
-    if (filteredItems.length > 0) {
-      googleMapInstance.current.fitBounds(bounds);
-    }
-  }, [filteredItems, mapLoaded]);
+  const activeLat = focusedLocation?.lat || focus?.lat || center?.lat || 15.2993;
+  const activeLng = focusedLocation?.lng || focus?.lng || center?.lng || 74.124;
 
   const handlePanTo = (item) => {
     setSelectedItem(item);
-    if (googleMapInstance.current && item.lat && item.lng) {
-      googleMapInstance.current.panTo({ lat: item.lat, lng: item.lng });
-      googleMapInstance.current.setZoom(14);
+    if (item.lat && item.lng) {
+      setFocus({ lat: item.lat, lng: item.lng });
     }
   };
 
-  const embedFallbackUrl = `https://maps.google.com/maps?q=${activeLat},${activeLng}&hl=en&z=12&output=embed`;
+  const filterBtn = (key, label, count) => {
+    const isActive = activeCategory === key;
+    const activeBg = key === 'restaurant' ? '#d97706' : key === 'place' ? '#059669' : '#025a9e';
+    return (
+      <button
+        key={key}
+        onClick={() => setActiveCategory(key)}
+        style={{
+          padding: '6px 12px',
+          borderRadius: '20px',
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          cursor: 'pointer',
+          border: 'none',
+          background: isActive ? activeBg : '#f1f5f9',
+          color: isActive ? '#fff' : '#475569',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        {label} ({count})
+      </button>
+    );
+  };
 
   return (
     <div className="map-view-wrapper" style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
@@ -175,107 +135,67 @@ const MapView = ({
             </h3>
           </div>
           <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '4px 0 0 0' }}>
-            Exploring <strong>{destination}</strong> ({activeLat.toFixed(4)}, {activeLng.toFixed(4)}) • {filteredItems.length} locations mapped
+            Exploring <strong>{destination}</strong> ({Number(activeLat).toFixed(4)}, {Number(activeLng).toFixed(4)}) • {filteredItems.length} locations mapped
           </p>
         </div>
 
         {/* Filter Badges */}
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setActiveCategory('all')}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '20px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: 'none',
-              background: activeCategory === 'all' ? '#025a9e' : '#f1f5f9',
-              color: activeCategory === 'all' ? '#fff' : '#475569',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            All Pins ({allItems.length})
-          </button>
-          <button
-            onClick={() => setActiveCategory('hotel')}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '20px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: 'none',
-              background: activeCategory === 'hotel' ? '#025a9e' : '#f1f5f9',
-              color: activeCategory === 'hotel' ? '#fff' : '#475569',
-            }}
-          >
-            🏨 Stays ({defaultHotels.length})
-          </button>
-          <button
-            onClick={() => setActiveCategory('restaurant')}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '20px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: 'none',
-              background: activeCategory === 'restaurant' ? '#d97706' : '#f1f5f9',
-              color: activeCategory === 'restaurant' ? '#fff' : '#475569',
-            }}
-          >
-            🍽️ Dining ({defaultRestaurants.length})
-          </button>
-          <button
-            onClick={() => setActiveCategory('place')}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '20px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: 'none',
-              background: activeCategory === 'place' ? '#059669' : '#f1f5f9',
-              color: activeCategory === 'place' ? '#fff' : '#475569',
-            }}
-          >
-            📍 Attractions ({defaultPlaces.length})
-          </button>
+          {filterBtn('all', 'All Pins', allItems.length)}
+          {filterBtn('hotel', '🏨 Stays', hotelCount)}
+          {filterBtn('restaurant', '🍽️ Dining', restaurantCount)}
+          {filterBtn('place', '📍 Attractions', placeCount)}
         </div>
       </div>
 
-      {/* Main Map Container */}
+      {/* Main Map Container — Leaflet + OpenStreetMap, keyless */}
       <div style={{ position: 'relative', width: '100%', height: '480px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
-        {mapApiKey && (
-          <div
-            ref={mapRef}
-            style={{
-              width: '100%',
-              height: '100%',
-              display: mapLoaded ? 'block' : 'none',
-            }}
+        <MapContainer
+          center={[activeLat, activeLng]}
+          zoom={11}
+          scrollWheelZoom
+          style={{ width: '100%', height: '100%' }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-        )}
-
-        {/* Fallback Embed View if JS API isn't yet ready */}
-        {(!mapLoaded || !mapApiKey) && (
-          <iframe
-            title="Google Map View"
-            src={embedFallbackUrl}
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            allowFullScreen=""
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
+          <MapController
+            focus={focusedLocation || focus}
+            items={filteredItems}
           />
-        )}
+          {filteredItems.map((item, idx) => {
+            const isSelected = selectedItem?.name === item.name;
+            const color = CATEGORY_COLORS[item.category] || '#025a9e';
+            return (
+              <CircleMarker
+                key={`${item.category}-${item.placeId || item.name}-${idx}`}
+                center={[item.lat, item.lng]}
+                radius={isSelected ? 12 : 8}
+                pathOptions={{
+                  fillColor: color,
+                  fillOpacity: 1,
+                  color: '#ffffff',
+                  weight: 2,
+                }}
+                eventHandlers={{ click: () => setSelectedItem(item) }}
+              >
+                <Popup>
+                  <div style={{ fontFamily: 'sans-serif', maxWidth: 200 }}>
+                    <strong style={{ fontSize: 13, color: '#0f172a' }}>{item.name}</strong>
+                    {item.price && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{item.price}</div>}
+                    <div style={{ fontSize: 11, color: '#025a9e', fontWeight: 700, marginTop: 4 }}>{ratingLabel(item)}</div>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            );
+          })}
+        </MapContainer>
 
         {/* Overlay Badge */}
-        <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(4px)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700, color: '#025a9e', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 500, background: 'rgba(255,255,255,0.92)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700, color: '#025a9e', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }}></span>
-          Google Maps Live Engine
+          OpenStreetMap • Free Maps Engine
         </div>
       </div>
 
@@ -288,7 +208,7 @@ const MapView = ({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
           {filteredItems.map((item, idx) => {
             const isSelected = selectedItem?.name === item.name;
-            const badgeColor = item.category === 'hotel' ? '#025a9e' : item.category === 'restaurant' ? '#d97706' : '#059669';
+            const badgeColor = CATEGORY_COLORS[item.category] || '#025a9e';
             return (
               <div
                 key={idx}
@@ -310,11 +230,11 @@ const MapView = ({
                     {item.name}
                   </span>
                   <span style={{ fontSize: '0.68rem', fontWeight: 800, color: badgeColor, background: '#fff', padding: '1px 6px', borderRadius: '4px', border: `1px solid ${badgeColor}30` }}>
-                    ★ {item.rating || '4.6'}
+                    {ratingLabel(item)}
                   </span>
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: '1.3' }}>
-                  {item.desc || item.price}
+                  {item.desc || item.price || item.address}
                 </div>
                 {item.price && (
                   <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#025a9e', marginTop: '2px' }}>

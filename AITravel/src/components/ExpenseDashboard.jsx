@@ -1,4 +1,4 @@
-import { DollarSign, Users, PieChart, Sparkles, TrendingDown, CheckCircle2 } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 const ExpenseDashboard = ({
   expenses = {},

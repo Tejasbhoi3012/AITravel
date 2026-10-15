@@ -1,7 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrip } from '../context/TripContext';
-import { Sparkles, Compass, MapPin, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Sparkles, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+
+const steps = [
+  { title: 'Creating your trip...', desc: 'Setting up parameters and traveler profiles' },
+  { title: 'Finding places...', desc: 'Fetching authentic hotels, dining and landmarks via Google Places' },
+  { title: 'Planning itinerary...', desc: 'Gemini AI is structuring your morning, afternoon and evening schedule' },
+  { title: 'Calculating expenses...', desc: 'Estimating accommodation, transit, food and activity costs' },
+  { title: 'Optimizing your route...', desc: 'Finalizing map coordinates and verified location data' },
+];
 
 const GeneratingTripPage = () => {
   const navigate = useNavigate();
@@ -11,15 +19,7 @@ const GeneratingTripPage = () => {
   const [error, setError] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
-  const steps = [
-    { title: 'Creating your trip...', desc: 'Setting up parameters and traveler profiles' },
-    { title: 'Finding places...', desc: 'Fetching authentic hotels, dining and landmarks via Google Places' },
-    { title: 'Planning itinerary...', desc: 'Gemini AI is structuring your morning, afternoon and evening schedule' },
-    { title: 'Calculating expenses...', desc: 'Estimating accommodation, transit, food and activity costs' },
-    { title: 'Optimizing your route...', desc: 'Finalizing map coordinates and verified location data' },
-  ];
-
-  const runGeneration = async () => {
+  const runGeneration = useCallback(async () => {
     setError(null);
     setIsRetrying(true);
     setCurrentStepIndex(0);
@@ -42,11 +42,14 @@ const GeneratingTripPage = () => {
     } finally {
       setIsRetrying(false);
     }
-  };
+  }, [generateTripPlan, navigate]);
 
+  const hasRunRef = useRef(false);
   useEffect(() => {
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
     runGeneration();
-  }, []);
+  }, [runGeneration]);
 
   return (
     <div className="generating-page-container">

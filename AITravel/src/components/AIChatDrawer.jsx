@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, X, Send, Check, TrendingDown, Bot, User } from 'lucide-react';
+import { X, Send } from 'lucide-react';
 import * as aiService from '../services/aiService';
 
 const AIChatDrawer = ({ isOpen, onClose, trip }) => {
@@ -31,21 +31,38 @@ const AIChatDrawer = ({ isOpen, onClose, trip }) => {
 
   const [inputVal, setInputVal] = useState('');
   const [appliedSavings, setAppliedSavings] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  const handleSend = (textToSend = null) => {
-    const text = textToSend || inputVal;
-    if (!text.trim()) return;
+  const handleSend = async (textToSend = null) => {
+    const text = (textToSend || inputVal).trim();
+    if (!text || sending) return;
 
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now(), role: 'user', text },
-      {
-        id: Date.now() + 1,
-        role: 'ai',
-        text: `Understood! Optimizing itinerary and recalculating budgets for "${text}".`,
-      },
-    ]);
+    const userMsg = { id: Date.now(), role: 'user', text };
+    setMessages((prev) => [...prev, userMsg]);
     setInputVal('');
+    setSending(true);
+
+    try {
+      const res = await aiService.chat({
+        message: text,
+        trip,
+        history: messages.slice(-6).map((m) => ({ role: m.role, text: m.text })),
+      });
+      const aiText = res?.reply || res?.message || `Understood! Optimizing itinerary and recalculating budgets for "${text}".`;
+      setMessages((prev) => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText }]);
+    } catch {
+      // Backend offline — local fallback so chat still feels responsive
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: 'ai',
+          text: `Understood! Optimizing itinerary and recalculating budgets for "${text}".`,
+        },
+      ]);
+    } finally {
+      setSending(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -191,7 +208,8 @@ const AIChatDrawer = ({ isOpen, onClose, trip }) => {
           />
           <button
             onClick={() => handleSend()}
-            style={{ padding: '10px 16px', background: '#0b2545', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+            disabled={sending}
+            style={{ padding: '10px 16px', background: '#0b2545', color: '#fff', border: 'none', borderRadius: 8, cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.7 : 1 }}
           >
             <Send size={16} />
           </button>

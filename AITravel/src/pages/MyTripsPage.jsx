@@ -2,20 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText,
-  Share2,
   Download,
   Mail,
   MessageCircle,
   Copy,
-  CheckCircle2,
-  TrendingUp,
-  CreditCard,
   Receipt,
   Search,
-  Check,
-  Calendar,
-  ExternalLink,
-  ChevronDown,
+  Users,
 } from 'lucide-react';
 
 const MyTripsPage = () => {

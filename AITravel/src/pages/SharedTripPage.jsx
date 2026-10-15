@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as tripService from '../services/tripService';
-import { MapPin, Calendar, Users, DollarSign, ArrowLeft } from 'lucide-react';
+import { MapPin, Calendar } from 'lucide-react';
 import ItinerarySection from '../components/ItinerarySection';
 import HotelsSection from '../components/HotelsSection';
 import RestaurantsSection from '../components/RestaurantsSection';
-import PlacesSection from '../components/PlacesSection';
 import ExpenseDashboard from '../components/ExpenseDashboard';
 import MapView from '../components/MapView';
 

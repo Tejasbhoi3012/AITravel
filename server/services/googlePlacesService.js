@@ -49,7 +49,17 @@ export const searchPlaces = async (query) => {
     }
   }
 
-  // Graceful fallback destination data for development / when API key is not configured
+  // Free tier: OpenStreetMap Nominatim (no key, no billing)
+  try {
+    const osmResults = await searchPlacesOSM(query);
+    if (osmResults.length > 0) {
+      return osmResults;
+    }
+  } catch (osmError) {
+    console.warn('[OSM] Nominatim search error, using curated dataset:', osmError.message);
+  }
+
+  // Graceful fallback destination data for development / when all providers fail
   return getFallbackDestinations(query);
 };
 
@@ -77,7 +87,19 @@ export const getHotels = async (latitude, longitude, destination = 'Destination'
         return response.data.results.slice(0, 8).map(mapGooglePlaceToItem);
       }
     } catch (error) {
-      console.warn('[Google Places API] Hotels fetch error, using fallback:', error.message);
+      console.warn('[Google Places API] Hotels fetch error, trying OSM:', error.message);
+    }
+  }
+
+  // Free tier: OpenStreetMap Overpass (no key, no billing)
+  if (latitude && longitude) {
+    try {
+      const osmHotels = await overpassNearby(latitude, longitude, 'hotels');
+      if (osmHotels.length > 0) {
+        return osmHotels;
+      }
+    } catch (osmError) {
+      console.warn('[OSM] Overpass hotels error, using curated dataset:', osmError.message);
     }
   }
 
@@ -108,7 +130,19 @@ export const getRestaurants = async (latitude, longitude, destination = 'Destina
         return response.data.results.slice(0, 8).map(mapGooglePlaceToItem);
       }
     } catch (error) {
-      console.warn('[Google Places API] Restaurants fetch error, using fallback:', error.message);
+      console.warn('[Google Places API] Restaurants fetch error, trying OSM:', error.message);
+    }
+  }
+
+  // Free tier: OpenStreetMap Overpass (no key, no billing)
+  if (latitude && longitude) {
+    try {
+      const osmRestaurants = await overpassNearby(latitude, longitude, 'restaurants');
+      if (osmRestaurants.length > 0) {
+        return osmRestaurants;
+      }
+    } catch (osmError) {
+      console.warn('[OSM] Overpass restaurants error, using curated dataset:', osmError.message);
     }
   }
 
@@ -139,7 +173,19 @@ export const getAttractions = async (latitude, longitude, destination = 'Destina
         return response.data.results.slice(0, 10).map(mapGooglePlaceToItem);
       }
     } catch (error) {
-      console.warn('[Google Places API] Attractions fetch error, using fallback:', error.message);
+      console.warn('[Google Places API] Attractions fetch error, trying OSM:', error.message);
+    }
+  }
+
+  // Free tier: OpenStreetMap Overpass (no key, no billing)
+  if (latitude && longitude) {
+    try {
+      const osmAttractions = await overpassNearby(latitude, longitude, 'attractions');
+      if (osmAttractions.length > 0) {
+        return osmAttractions;
+      }
+    } catch (osmError) {
+      console.warn('[OSM] Overpass attractions error, using curated dataset:', osmError.message);
     }
   }
 
@@ -170,6 +216,164 @@ const mapGooglePlaceToItem = (place) => {
     cuisine: place.types?.includes('restaurant') ? 'Local & International' : '',
     openNow: place.opening_hours?.open_now ?? true,
     types: place.types || [],
+  };
+};
+
+/* --- Free data providers: OpenStreetMap (no key, no billing) --- */
+
+const OSM_HEADERS = {
+  'User-Agent': 'TravelAI/1.0 (https://localhost; contact: admin@travelai.local)',
+  Referer: 'http://localhost:5000/',
+};
+
+/**
+ * Geocode / search destinations via Nominatim (free, keyless).
+ * Respects Nominatim usage policy: single request per call, descriptive UA.
+ */
+const searchPlacesOSM = async (query) => {
+  const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+    params: {
+      q: query,
+      format: 'jsonv2',
+      addressdetails: 1,
+      limit: 6,
+    },
+    headers: OSM_HEADERS,
+    timeout: 12000,
+  });
+
+  const results = Array.isArray(response.data) ? response.data : [];
+  return results
+    .map((r) => {
+      const addr = r.address || {};
+      const name = r.name || (r.display_name || '').split(',')[0] || query;
+      return {
+        placeId: `osm_${r.osm_type}_${r.osm_id}`,
+        name,
+        country: addr.country || '',
+        formattedAddress: r.display_name || name,
+        latitude: Number(r.lat) || 0,
+        longitude: Number(r.lon) || 0,
+        rating: null, // OSM has no ratings — UI shows "Unrated"
+        userRatingsTotal: 0,
+        photos: [],
+        types: [r.type, r.class].filter(Boolean),
+        source: 'osm',
+      };
+    })
+    .filter((p) => p.latitude && p.longitude);
+};
+
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+];
+
+const overpassFilterFor = (kind, radius, lat, lng) => {
+  const around = `(around:${radius},${lat},${lng})`;
+  if (kind === 'hotels') {
+    return `nwr["tourism"~"hotel|hostel|guest_house|motel|apartment|resort|chalet|lodge"]${around};`;
+  }
+  if (kind === 'restaurants') {
+    return `nwr["amenity"~"restaurant|cafe|fast_food|bar|pub|biergarten|food_court|ice_cream"]${around};`;
+  }
+  // attractions: tagged sights + anything historic
+  return `nwr["tourism"~"attraction|museum|viewpoint|artwork|gallery|zoo|theme_park|aquarium"]${around};nwr["historic"]${around};`;
+};
+
+/**
+ * Nearby POIs via Overpass API (free, keyless). Returns standardized items.
+ */
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const queryOverpassMirror = async (mirror, query) => {
+  const response = await axios.post(
+    mirror,
+    new URLSearchParams({ data: query }).toString(),
+    {
+      headers: { ...OSM_HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' },
+      timeout: 15000,
+    }
+  );
+  return response.data?.elements || [];
+};
+
+/**
+ * Nearby POIs via Overpass API (free, keyless). Returns standardized items.
+ * Tries multiple public mirrors + one retry — falls back to curated data
+ * when the public instances are rate-limiting (HTTP 429) or slow.
+ */
+const overpassNearby = async (latitude, longitude, kind) => {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  if (!lat || !lng) return [];
+
+  const radius = 15000;
+  const limit = 8;
+  const query = `[out:json][timeout:15];(${overpassFilterFor(kind, radius, lat, lng)});out center ${limit};`;
+
+  let lastError = null;
+  for (const mirror of OVERPASS_MIRRORS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const elements = await queryOverpassMirror(mirror, query);
+        const items = elements.map((el) => mapOsmElementToItem(el, kind)).filter(Boolean);
+        if (items.length > 0) {
+          return items.slice(0, limit);
+        }
+        return []; // mirror OK but area has no tagged POIs — don't hammer others
+      } catch (err) {
+        lastError = err;
+        const status = err.response?.status;
+        if (status === 429) {
+          await sleep(1500); // back off, then retry / next mirror
+        } else if (attempt === 0 && !status) {
+          await sleep(800); // transient network timeout — one retry
+        } else {
+          break; // non-retryable — try next mirror
+        }
+      }
+    }
+  }
+
+  throw lastError || new Error('Overpass mirrors unavailable');
+};
+
+const mapOsmElementToItem = (el, kind) => {
+  const tags = el.tags || {};
+  if (!tags.name) return null;
+  const lat = el.lat ?? el.center?.lat;
+  const lon = el.lon ?? el.center?.lon;
+  if (!lat || !lon) return null;
+
+  const street = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ');
+  const city = tags['addr:city'] || tags['addr:town'] || tags['addr:village'] || '';
+  const address = [street, city].filter(Boolean).join(', ');
+
+  const category =
+    kind === 'hotels'
+      ? (tags.tourism || 'Lodging').replace(/_/g, ' ')
+      : kind === 'restaurants'
+        ? (tags.cuisine ? `${tags.cuisine} cuisine` : (tags.amenity || 'Dining').replace(/_/g, ' '))
+        : (tags.tourism || tags.historic || 'Attraction').replace(/_/g, ' ');
+
+  return {
+    placeId: `osm_${el.type}_${el.id}`,
+    name: tags.name,
+    rating: null, // OSM has no ratings — UI shows "Unrated"
+    userRatingsTotal: 0,
+    address,
+    vicinity: address,
+    latitude: Number(lat),
+    longitude: Number(lon),
+    photos: [], // card components fall back to stock imagery
+    priceEstimate: 'See listing',
+    category,
+    cuisine: tags.cuisine || '',
+    openNow: true,
+    types: [tags.tourism, tags.amenity, tags.historic].filter(Boolean),
+    source: 'osm',
   };
 };
 

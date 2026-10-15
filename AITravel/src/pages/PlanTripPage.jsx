@@ -9,22 +9,14 @@ import {
   Heart,
   Sparkles,
   ArrowRight,
-  Compass,
-  Calendar,
-  Users,
-  DollarSign,
-  Shield,
   Layers,
-  Check,
-  Building,
-  Utensils,
   ChevronRight,
 } from 'lucide-react';
 import AIChatDrawer from '../components/AIChatDrawer';
 
 const PlanTripPage = () => {
   const navigate = useNavigate();
-  const { plannerState, updatePlannerField, generateTripPlan } = useTrip();
+  const { plannerState, updatePlannerField, updatePreferenceList } = useTrip();
 
   const [step, setStep] = useState(1);
   const [destinationInput, setDestinationInput] = useState(plannerState.destination || 'Goa, India');
@@ -328,17 +320,42 @@ const PlanTripPage = () => {
           <div className="form-step-tag">STEP 04 • PALATE & VIBE</div>
           <h2 className="form-step-heading">Personalize Your Preferences</h2>
           <p className="form-step-sub">Select your preferred stays and activities.</p>
-          <div className="chips-container" style={{ margin: '20px 0' }}>
-            {['Luxury Resort', 'Boutique Hotel', 'Vegetarian Cafes', 'Seafood Bistros', 'Beaches & Sunset', 'Historic Forts', 'Nightlife', 'Water Sports'].map((pref) => (
-              <button
-                key={pref}
-                className="chip-btn active"
-                style={{ padding: '8px 16px' }}
-              >
-                {pref}
-              </button>
-            ))}
-          </div>
+          {[
+            { category: 'accommodation', label: 'Stays', options: ['Luxury Resort', 'Boutique Hotel', 'Standard Hotel'] },
+            { category: 'food', label: 'Food', options: ['Vegetarian Cafes', 'Seafood Bistros', 'Local Delicacies', 'Street Food'] },
+            { category: 'activities', label: 'Activities', options: ['Beaches & Sunset', 'Historic Forts', 'Nightlife', 'Water Sports', 'Nature & Hiking'] },
+          ].map((group) => (
+            <div key={group.category} style={{ margin: '16px 0' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: 8 }}>
+                {group.label}
+              </div>
+              <div className="chips-container" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {group.options.map((pref) => {
+                  const selected = (plannerState.preferences?.[group.category] || []).includes(pref);
+                  return (
+                    <button
+                      key={pref}
+                      type="button"
+                      onClick={() => updatePreferenceList(group.category, pref)}
+                      className={`chip-btn ${selected ? 'active' : ''}`}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 999,
+                        border: selected ? '1px solid #025a9e' : '1px solid #cbd5e1',
+                        background: selected ? '#025a9e' : '#fff',
+                        color: selected ? '#fff' : '#334155',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.82rem',
+                      }}
+                    >
+                      {pref}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

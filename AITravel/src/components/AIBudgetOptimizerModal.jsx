@@ -1,19 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Sparkles, X, TrendingDown, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Sparkles, X, TrendingDown } from 'lucide-react';
 import * as aiService from '../services/aiService';
 
-const AIBudgetOptimizerModal = ({ isOpen, onClose, trip, onApplyOptimization }) => {
+const AIBudgetOptimizerModal = ({ isOpen, onClose, trip }) => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (isOpen && trip) {
-      fetchOptimization();
-    }
-  }, [isOpen, trip]);
-
-  const fetchOptimization = async () => {
+  const fetchOptimization = useCallback(async () => {
+    if (!trip) return;
     setLoading(true);
     setError(null);
     try {
@@ -27,13 +22,23 @@ const AIBudgetOptimizerModal = ({ isOpen, onClose, trip, onApplyOptimization }) 
 
       if (res.success && res.optimization) {
         setData(res.optimization);
+      } else {
+        setError('No optimizations returned. Try again.');
       }
     } catch (err) {
       setError(err.message || 'Could not calculate optimizations');
     } finally {
       setLoading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip?.destination, trip?.budget, trip?.currency, trip?.duration]);
+
+  useEffect(() => {
+    if (isOpen && trip) {
+      fetchOptimization();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

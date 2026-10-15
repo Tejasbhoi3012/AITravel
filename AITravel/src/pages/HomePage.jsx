@@ -12,18 +12,14 @@ import {
   Star,
   Heart,
   MessageSquare,
-  ArrowRight,
-  Shield,
   Send,
   CheckCircle2,
-  TrendingDown,
-  Navigation,
 } from 'lucide-react';
 import AIChatDrawer from '../components/AIChatDrawer';
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { plannerState, updatePlannerField, generateTripPlan } = useTrip();
+  const { updatePlannerField } = useTrip();
 
   // Widget state
   const [destination, setDestination] = useState('Goa, India');
@@ -37,7 +33,6 @@ const HomePage = () => {
 
   // Expense breakdown toggle
   const [expenseDuration, setExpenseDuration] = useState(5);
-  const [expenseTravelers, setExpenseTravelers] = useState(2);
 
   // Chat copilot interactive demo state
   const [demoInput, setDemoInput] = useState('');
