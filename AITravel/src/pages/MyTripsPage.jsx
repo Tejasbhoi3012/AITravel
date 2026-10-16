@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FileText,
   Download,
+  FileText,
   Mail,
-  MessageCircle,
+  Send,
+  ExternalLink,
   Copy,
-  Receipt,
+  Check,
   Search,
-  Users,
+  ArrowRight,
+  Receipt,
 } from 'lucide-react';
 
 const MyTripsPage = () => {
@@ -17,131 +19,108 @@ const MyTripsPage = () => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [searchTableQuery, setSearchTableQuery] = useState('');
 
-  const completedTrips = [
+  const archivedTrips = [
     {
-      id: 'goa_1',
-      title: '5-Day Tropical Goa Escape',
-      dates: 'Oct 14 – Oct 19, 2025',
-      travelers: '2 Travelers',
-      totalCost: '₹42,500',
-      status: '15% Under Target (50k)',
-      desc: 'Boutique heritage stay, private catamaran charter, and culinary tour.',
-      savings: 'Saved ₹6,300 via dynamic rebooking',
-      bars: [
-        { label: 'Stays', val: '₹15k' },
-        { label: 'Flight', val: '₹12k' },
-        { label: 'Dining', val: '₹8k' },
-        { label: 'Act', val: '₹4k' },
-        { label: 'Transit', val: '₹3.5k' },
+      id: 'goa',
+      tripNo: 'TRIP #IND-GOA-2026',
+      title: 'Goa Coastal Odyssey',
+      dates: 'Sep 14 – Sep 19, 2026 • 5 Days • 2 Travelers',
+      total: '₹42,500',
+      saved: 'Saved ₹7,500',
+      img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+      overlay: 'HOTEL M VAGATOR + TRANSIT',
+      costs: [
+        { label: 'LODGING', val: '₹22,000' },
+        { label: 'TRANSIT', val: '₹11,500' },
+        { label: 'DINING', val: '₹6,200' },
+        { label: 'LEISURE', val: '₹2,800' },
       ],
+      vouchers: '14 Reconciled Vouchers',
     },
     {
-      id: 'dubai_1',
-      title: '4-Day Dubai Luxury & Dune Safari',
-      dates: 'Aug 10 – Aug 14, 2025',
-      travelers: '2 Travelers',
-      totalCost: '₹78,200',
-      status: '2.2% Under Target (80k)',
-      desc: 'Marina suites, Desert camp stargazing, and fine dining experiences.',
-      savings: 'Saved ₹12,400 via automated lounge & hotel coupons',
-      bars: [
-        { label: 'Stays', val: '₹34k' },
-        { label: 'Flight', val: '₹19.6k' },
-        { label: 'Dining', val: '₹14.2k' },
-        { label: 'Safari', val: '₹10.4k' },
+      id: 'bali',
+      tripNo: 'TRIP #IDN-DPS-2026',
+      title: 'Bali Island Hopping',
+      dates: 'Jun 02 – Jun 09, 2026 • 7 Days • Solo',
+      total: '₹54,000',
+      saved: 'Saved ₹9,800',
+      img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80',
+      overlay: 'SEMINYAK VILLA + SPEEDBOATS',
+      costs: [
+        { label: 'LODGING', val: '₹26,400' },
+        { label: 'TRANSIT', val: '₹14,200' },
+        { label: 'DINING', val: '₹8,900' },
+        { label: 'LEISURE', val: '₹4,500' },
       ],
+      vouchers: '16 Reconciled Vouchers',
     },
     {
-      id: 'bali_1',
-      title: '7-Day Bali Cultural & Villa Retreat',
-      dates: 'Apr 03 – Apr 09, 2025',
-      travelers: '2 Travelers',
-      totalCost: '₹64,800',
-      status: 'Matched Target Budget',
-      desc: 'Ubud rainforest sanctuary, temple excursions, and scooter transit.',
-      savings: 'Zero FX fee card saved ₹2,140 on foreign conversion',
-      bars: [
-        { label: 'Villa', val: '₹24.6k' },
-        { label: 'Flight', val: '₹22k' },
-        { label: 'Food', val: '₹11.4k' },
-        { label: 'Spa', val: '₹7.8k' },
+      id: 'dubai',
+      tripNo: 'TRIP #ARE-DXB-2026',
+      title: 'Dubai Skyline & Desert',
+      dates: 'Mar 10 – Mar 14, 2026 • 4 Days • 2 Travelers',
+      total: '₹68,500',
+      saved: 'Saved ₹11,200',
+      img: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=800&q=80',
+      overlay: 'DOWNTOWN RESIDENCES + SAFARI',
+      costs: [
+        { label: 'LODGING', val: '₹34,000' },
+        { label: 'TRANSIT', val: '₹18,500' },
+        { label: 'DINING', val: '₹10,500' },
+        { label: 'LEISURE', val: '₹5,500' },
       ],
+      vouchers: '10 Reconciled Vouchers',
     },
     {
-      id: 'himachal_1',
-      title: '3-Day Himachal Mountain Expedition',
-      dates: 'Jan 16 – Jan 18, 2025',
-      travelers: 'Solo Adventure',
-      totalCost: '₹32,900',
-      status: 'Within Budget',
-      desc: 'Winter cabin stay, licensed 4x4 trails, and mountain trekking permits.',
-      savings: 'Early bird cabin reservation locked 25% discount',
-      bars: [
-        { label: 'Cabin', val: '₹13.2k' },
-        { label: 'Transit', val: '₹10.5k' },
-        { label: 'Permits', val: '₹6k' },
-        { label: 'Food', val: '₹3.2k' },
+      id: 'iceland',
+      tripNo: 'TRIP #ISL-KEF-2025',
+      title: 'Reykjavik Geothermal',
+      dates: 'Nov 18 – Nov 24, 2025 • 6 Days • 2 Travelers',
+      total: '₹65,000',
+      saved: 'Saved ₹5,700',
+      img: 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?auto=format&fit=crop&w=800&q=80',
+      overlay: 'RING ROAD 4X4 + HOT SPRINGS',
+      costs: [
+        { label: 'LODGING', val: '₹41,000' },
+        { label: 'TRANSIT', val: '₹23,000' },
+        { label: 'DINING', val: '₹14,000' },
+        { label: 'LEISURE', val: '₹7,000' },
       ],
+      vouchers: '8 Reconciled Vouchers',
     },
   ];
 
   const transactionLogs = [
     {
-      date: 'Oct 14, 2025',
-      trip: 'Goa Escape',
-      item: 'IndiGo Flight 6E-4001 (BOM -> GOI)',
-      itemSub: 'PNR: GK-V6Z3EF • Seat 14A, 14B',
-      category: 'Flights',
-      payer: 'You (Direct)\nSplit: 50/50 with Priya',
-      receipt: 'View Voucher',
-      status: 'Verified AI Spot',
-      amount: '₹12,000',
+      date: '15 Sep 2026', trip: 'Goa Coastal Odyssey',
+      item: 'W Goa • Luxury Sea View Suite', itemSub: 'Vagator Beach Road • 3 Nights Confirmation',
+      category: 'Lodging', payer: 'AS', payerName: 'Aryan S.', receipt: '#VCHR-8841', status: 'Verified', amount: '₹22,000',
     },
     {
-      date: 'Oct 15, 2025',
-      trip: 'Goa Escape',
-      item: 'Heritage Portuguese Villa & Spa',
-      itemSub: 'Anjuna, North Goa • 4 Nights Deluxe Suite',
-      category: 'Stays',
-      payer: 'You (HDFC Card)\nSplit: 50/50',
-      receipt: 'GST Invoice',
-      status: 'Settled',
-      amount: '₹15,000',
+      date: '14 Sep 2026', trip: 'Goa Coastal Odyssey',
+      item: 'Air India Express AI-582 (BOM → GOX)', itemSub: '2x Premium Economy Seats + Cabin Allowance',
+      category: 'Transit', payer: 'RM', payerName: 'Rohan M.', receipt: '#TKT-7721', status: 'Verified', amount: '₹11,500',
     },
     {
-      date: 'Oct 16, 2025',
-      trip: 'Goa Escape',
-      item: "Chef's Table Seafood Experience",
-      itemSub: 'Gunpowder Restaurant, Assagao',
-      category: 'Dining',
-      payer: 'Priya Sharma (UPI)\nReimbursed by You (50%)',
-      receipt: 'Bill OCR',
-      status: 'Settled',
-      amount: '₹8,000',
+      date: '16 Sep 2026', trip: 'Goa Coastal Odyssey',
+      item: 'Thalassa Greek Taverna Siolim', itemSub: 'Sunset Dinner + Tasting Menu (Direct Pos Bill)',
+      category: 'Dining', payer: 'RM', payerName: 'Rohan M.', receipt: '#INV-0302', status: 'Verified', amount: '₹6,500',
     },
     {
-      date: 'Oct 17, 2025',
-      trip: 'Goa Escape',
-      item: 'Sunset Catamaran Charter & Kayaks',
-      itemSub: 'Chapora River Cruising',
-      category: 'Activities',
-      payer: 'Priya Sharma (UPI)\nShared Adventure',
-      receipt: 'E-Ticket',
-      status: 'Verified',
-      amount: '₹4,000',
+      date: '17 Sep 2026', trip: 'Goa Coastal Odyssey',
+      item: 'Scuba Diving & Grand Island Catamaran', itemSub: 'Certified PADI Guide + Gear Rental Voucher',
+      category: 'Activities', payer: 'AS', payerName: 'Aryan S.', receipt: '#ACT-1994', status: 'Verified', amount: '₹2,500',
     },
     {
-      date: 'Aug 11, 2025',
-      trip: 'Dubai Luxury',
-      item: 'Atlantis The Royal - Harbor Penthouse',
-      itemSub: 'Palm Jumeirah • AI Negotiated Rate',
-      category: 'Stays',
-      payer: 'Corporate Card\nReimbursable Ledger',
-      receipt: 'VAT Invoice',
-      status: 'Audit Passed',
-      amount: '₹34,000',
+      date: '05 Jun 2026', trip: 'Bali Island Hopping',
+      item: 'Fast Boat Transfer Sanur → Nusa Penida', itemSub: 'Maruti Duta Express • VIP Return Ticket',
+      category: 'Transit', payer: 'AS', payerName: 'Aryan S.', receipt: '#IDN-0912', status: 'Verified', amount: '₹3,800',
     },
   ];
+
+  const filteredTxns = transactionLogs.filter((r) =>
+    `${r.item} ${r.receipt} ${r.trip}`.toLowerCase().includes(searchTableQuery.toLowerCase())
+  );
 
   const handleCopy = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -150,354 +129,236 @@ const MyTripsPage = () => {
   };
 
   return (
-    <div className="audited-statements-root">
-      {/* Top Bar with Breadcrumb and Currency Switcher */}
-      <div className="audit-top-row">
+    <div className="audited-statements-root audit-v2">
+      {/* Header card */}
+      <div className="audit-v2-header">
         <div>
-          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#025a9e', letterSpacing: '0.6px', textTransform: 'uppercase' }}>
-            AUDITED STATEMENTS • <span style={{ color: '#16a34a' }}>● Real-time Ledger Sync: Oct 2026</span>
+          <div className="audit-v2-toplabel mono">
+            FINANCIAL WAYPOINT &amp; TELEMETRY <span className="blue-dot" /> LEDGER VERIFIED [SHA-256]
           </div>
-          <h1 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
-            Expense History &amp; Audited Trip Statements
-          </h1>
-          <p style={{ fontSize: '0.9rem', color: '#64748b', maxWidth: 700 }}>
-            Review, compare, and audit completed itineraries, automated receipt matching, and currency-settled expense archives with algorithmic savings intelligence.
-          </p>
+          <h1>Expense History &amp; Audited Trip Statements</h1>
+          <p>Zero-discrepancy multi-currency reconciliations, itemized splits, and cryptographically verified fiscal records.</p>
         </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
-          <div style={{ display: 'flex', gap: 6, background: '#f1f5f9', padding: 4, borderRadius: 8 }}>
-            {['INR', 'USD', 'EUR'].map((curr) => (
-              <button
-                key={curr}
-                onClick={() => setSelectedCurrency(curr)}
-                style={{
-                  padding: '4px 10px',
-                  background: selectedCurrency === curr ? '#ffffff' : 'transparent',
-                  border: 'none',
-                  borderRadius: 6,
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  color: selectedCurrency === curr ? '#025a9e' : '#64748b',
-                  cursor: 'pointer',
-                  boxShadow: selectedCurrency === curr ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
-                }}
-              >
-                {curr === 'INR' ? '₹ INR' : curr === 'USD' ? '$ USD' : '€ EUR'}
+        <div className="audit-v2-headerright">
+          <div className="currency-row">
+            {[
+              { k: 'INR', label: 'INR (₹)' },
+              { k: 'USD', label: 'USD ($)' },
+              { k: 'EUR', label: 'EUR (€)' },
+            ].map((c) => (
+              <button key={c.k} className={selectedCurrency === c.k ? 'active' : ''} onClick={() => setSelectedCurrency(c.k)}>
+                {c.label}
               </button>
             ))}
+            <button className="export-csv-btn" onClick={() => alert('Exporting CSV format...')}>
+              <Download size={12} /> Export CSV
+            </button>
           </div>
+          <button className="share-pdf-btn" onClick={() => window.print()}>
+            <FileText size={13} /> Share PDF Statement
+          </button>
+        </div>
+      </div>
 
-          <div className="audit-action-btn-group">
-            <button className="btn-ws-secondary" onClick={() => alert('Exporting CSV / Excel format...')}>
-              <FileText size={13} />
-              <span>Export CSV / Excel</span>
-            </button>
-            <button className="btn-ws-primary" onClick={() => window.print()}>
-              <Download size={13} />
-              <span>Share PDF Statement</span>
-            </button>
+      {/* Generate + Distribution */}
+      <div className="audit-v2-tworow">
+        <div className="gen-card">
+          <div className="gen-head">
+            <span className="gen-title"><Receipt size={14} /> Generate &amp; Share Expense Statement</span>
+            <span className="audit-ready-badge mono">● AUDIT READY</span>
+          </div>
+          <p className="gen-desc">Select parametric filters to compile an institutional-grade travel tax audit package with attached GST/VAT receipts.</p>
+          <label className="gen-label mono">TARGET ROUTE &amp; ODYSSEY</label>
+          <select className="gen-select">
+            <option>Goa Coastal Odyssey • 5 Days (Sep 14 - Sep 19, 2026)</option>
+            <option>Bali Island Hopping • 7 Days</option>
+            <option>Dubai Skyline &amp; Desert • 4 Days</option>
+          </select>
+          <div className="gen-2col">
+            <div>
+              <label className="gen-label mono">RECONCILIATION RANGE</label>
+              <input className="gen-select" defaultValue="14 Sep 2026 - 19 Sep 2026" />
+            </div>
+            <div>
+              <label className="gen-label mono">ALLOCATION PROTOCOL</label>
+              <select className="gen-select">
+                <option>Equal 2-way split (Aryan &amp; Rohan)</option>
+                <option>Equal 3-way split</option>
+                <option>Primary payer settles all</option>
+              </select>
+            </div>
+          </div>
+          <div className="gen-foot">
+            <span className="tax-note mono">◔ Tax Compliance: IN-GST Form 12A Equivalent</span>
+            <button className="gen-pdf-btn" onClick={() => window.print()}>✎ Generate Audited PDF</button>
+          </div>
+        </div>
+
+        <div className="dist-card">
+          <div className="gen-head">
+            <span className="gen-title">⛉ Instant Distribution Channels</span>
+            <span className="dispatch-badge mono">v2.0.4 DISPATCH</span>
+          </div>
+          <p className="gen-desc">Broadcast validated statements to co-travelers, accountants, or corporate expense desks with zero manual formatting.</p>
+          <button className="dist-row" onClick={() => window.print()}>
+            <span className="dist-icon"><Download size={13} /></span>
+            <span className="dist-text"><strong>Download PDF Package</strong><span>Includes 48 receipts • 2.8 MB</span></span>
+            <ArrowRight size={15} />
+          </button>
+          <button className="dist-row" onClick={() => alert('Email composer opened...')}>
+            <span className="dist-icon"><Mail size={13} /></span>
+            <span className="dist-text"><strong>Email to Co-Travelers</strong><span>rohan.mehta@terminal.io + 1 attendee</span></span>
+            <Send size={14} />
+          </button>
+          <button className="dist-row" onClick={handleCopy}>
+            <span className="dist-icon green"><ExternalLink size={13} /></span>
+            <span className="dist-text"><strong>Share via WhatsApp</strong><span>Instant breakdown card with UPI quick-link</span></span>
+            <ExternalLink size={14} />
+          </button>
+          <div className="hash-row mono">
+            <span>◈ sha256: 8f9b64c2e5a18442...d4e9</span>
+            <button onClick={handleCopy}>{copiedLink ? <Check size={12} /> : <Copy size={12} />} {copiedLink ? 'Copied' : 'Copy Link'}</button>
           </div>
         </div>
       </div>
 
-      {/* Hero "Generate & Share Audited Statement" Card */}
-      <div className="audit-hero-card">
+      {/* 4 stats */}
+      <div className="audit-v2-stats">
+        <div className="stat-card">
+          <div className="stat-top"><span className="mono">LIFETIME TRAVEL SPEND</span><span>▤</span></div>
+          <div className="stat-big">₹2,18,400</div>
+          <div className="stat-sub">Across 4 completed multi-day journeys</div>
+          <div className="stat-foot mono">Target Cap: ₹2,60,000 <span className="blue">84.0% utilized</span></div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-top"><span className="mono">TOTAL AI SAVINGS</span><span className="saved-badge mono">15.6% SAVED</span></div>
+          <div className="stat-big green">₹34,200</div>
+          <div className="stat-sub">Below planned dynamic budget ceilings</div>
+          <div className="stat-foot mono">Algorithmic Yield <span className="green">• ₹8,550/trip</span></div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-top"><span className="mono">AVG. DAILY COST</span><span>⟳</span></div>
+          <div className="stat-big">₹8,400 <span className="per-day">/ day</span></div>
+          <div className="stat-sub">Weighted across 26 logged itinerary days</div>
+          <div className="stat-foot mono">Median: ₹7,950 / day <span>Optimal Index</span></div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-top"><span className="mono">RECONCILED RECEIPTS</span><span className="green-dot" /></div>
+          <div className="stat-big">48 / 48</div>
+          <div className="stat-sub">100% verified tax invoices &amp; e-tickets</div>
+          <div className="stat-foot mono">OCR Pipeline: Active <span className="green">0 Unassigned</span></div>
+        </div>
+      </div>
+
+      {/* Archived */}
+      <div className="archived-head">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <div className="brand-logo-icon" style={{ width: 24, height: 24 }}>
-              <Receipt size={14} />
-            </div>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>
-              Generate &amp; Share Audited Statement
-            </strong>
-          </div>
-          <p style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: 16 }}>
-            Configure trip parameters and cryptographic receipt verification for tax &amp; co-traveler settlements.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <div>
-              <label style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b' }}>SELECT TARGET TRIP</label>
-              <select style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '0.8rem', marginTop: 4 }}>
-                <option>5-Day Tropical Goa Escape (Oct 2025)</option>
-                <option>4-Day Dubai Luxury &amp; Dune Safari</option>
-                <option>7-Day Bali Cultural &amp; Villa Retreat</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b' }}>REPORT FORMAT</label>
-              <select style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '0.8rem', marginTop: 4 }}>
-                <option>Comprehensive Tax &amp; Corporate Reimb.</option>
-                <option>Personal Co-Traveler Split Summary</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: '0.78rem', color: '#334155' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input type="checkbox" defaultChecked /> Include verified digital receipts
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input type="checkbox" defaultChecked /> AI cost-saving optimizations log
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input type="checkbox" defaultChecked /> Co-traveler split breakdowns
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input type="checkbox" /> Custom corporate watermark
-            </label>
-          </div>
+          <h3>Archived &amp; Active Itinerary Statements</h3>
+          <p>Granular expenditure ledgers cross-referenced with multi-modal booking engines.</p>
         </div>
-
-        {/* Right side: Instant Distribution */}
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.5px' }}>
-            INSTANT DISTRIBUTION
-          </span>
-
-          <button
-            onClick={() => window.print()}
-            style={{
-              padding: '10px',
-              background: '#025a9e',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              cursor: 'pointer',
-            }}
-          >
-            <Download size={14} /> Download PDF (Print Ready)
-          </button>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <button className="btn-ws-secondary" style={{ justifyContent: 'center', fontSize: '0.75rem' }}>
-              <Mail size={12} /> Send Email
-            </button>
-            <button className="btn-ws-secondary" style={{ justifyContent: 'center', fontSize: '0.75rem' }}>
-              <MessageCircle size={12} /> WhatsApp
-            </button>
-          </div>
-
-          <button
-            onClick={handleCopy}
-            className="btn-ws-secondary"
-            style={{ justifyContent: 'center', fontSize: '0.75rem' }}
-          >
-            <Copy size={12} /> {copiedLink ? 'Copied Link!' : 'Copy Encrypted Link'}
-          </button>
-        </div>
+        <span className="years-pill">All Years (2025-2026)</span>
       </div>
 
-      {/* 4 Lifetime Aggregate Stat Cards */}
-      <div className="aggregate-4stats-grid">
-        <div className="aggregate-stat-card">
-          <div className="agg-label">Lifetime Travel Spend</div>
-          <div className="agg-val">₹2,18,400</div>
-          <div className="agg-sub">Across 4 completed journeys</div>
-        </div>
-
-        <div className="aggregate-stat-card">
-          <div className="agg-label">AI Algorithmic Savings</div>
-          <div className="agg-val" style={{ color: '#16a34a' }}>₹34,200</div>
-          <div className="agg-sub">+15.6% savings vs dynamic public fares</div>
-        </div>
-
-        <div className="aggregate-stat-card">
-          <div className="agg-label">Avg. Daily Burn Rate</div>
-          <div className="agg-val">₹8,400<span style={{ fontSize: '0.8rem', color: '#64748b' }}>/day</span></div>
-          <div className="agg-sub">Aggregated across 26 travel days</div>
-        </div>
-
-        <div className="aggregate-stat-card">
-          <div className="agg-label">Reconciled Receipts</div>
-          <div className="agg-val" style={{ color: '#025a9e' }}>48 / 48</div>
-          <div className="agg-sub">✔ 100% Tax Compliant &amp; Matched</div>
-        </div>
-      </div>
-
-      {/* Completed Itineraries & Budget Performance (4 Cards Grid) */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-          Completed Itineraries &amp; Budget Performance
-        </h3>
-        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Sorted by most recent</span>
-      </div>
-
-      <div className="completed-4trips-grid">
-        {completedTrips.map((t) => (
-          <div key={t.id} className="completed-trip-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-              <div>
-                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{t.dates} • {t.travelers}</span>
-                <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>{t.title}</h4>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#025a9e' }}>{t.totalCost}</div>
-                <span style={{ background: '#f0fdf4', color: '#16a34a', fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
-                  {t.status}
-                </span>
-              </div>
+      <div className="archived-grid">
+        {archivedTrips.map((t) => (
+          <div key={t.id} className="archived-card">
+            <div className="arch-top">
+              <span className="trip-no mono"><span className="blue">TRIP {t.tripNo.split('#')[1] ? '#' + t.tripNo.split('#')[1] : ''}</span> <span className="completed-badge">● COMPLETED</span></span>
+              <span className="arch-amount"><strong>{t.total}</strong><span className="saved-green">{t.saved}</span></span>
             </div>
-
-            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: 14 }}>{t.desc}</p>
-
-            <div style={{ display: 'flex', gap: 6, margin: '10px 0' }}>
-              {t.bars.map((b, i) => (
-                <div key={i} style={{ flex: 1, background: '#f1f5f9', padding: '4px 6px', borderRadius: 4, fontSize: '0.68rem', textAlign: 'center' }}>
-                  <div style={{ color: '#94a3b8' }}>{b.label}</div>
-                  <strong style={{ color: '#0f172a' }}>{b.val}</strong>
-                </div>
+            <h4>{t.title}</h4>
+            <span className="arch-dates">{t.dates}</span>
+            <div className="arch-img-wrap">
+              <img src={t.img} alt={t.title} loading="lazy" />
+              <span className="arch-overlay mono">{t.overlay}</span>
+            </div>
+            <div className="arch-costs">
+              {t.costs.map((c) => (
+                <div key={c.label}><span className="mono">{c.label}</span><strong>{c.val}</strong></div>
               ))}
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 10 }}>
-              <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>{t.savings}</span>
-              <button
-                onClick={() => navigate('/trip/goa_1')}
-                style={{
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 4,
-                  padding: '4px 10px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                View Audit 📥
-              </button>
+            <div className="arch-foot">
+              <span>{t.vouchers}</span>
+              <button onClick={() => navigate(`/trip/${t.id}`)}>View Audit Sheet →</button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Split Ledger & Reimbursement Status */}
-      <div className="split-ledger-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Users size={16} color="#025a9e" />
-          <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>
-            Goa Trip Split Ledger &amp; Reimbursement Status
-          </strong>
+      {/* Split ledger */}
+      <div className="split-ledger-v2">
+        <div className="split-head">
+          <strong>⛉ Active Trip Split Ledger &amp; Peer Reconciliation</strong>
+          <span className="mono">AUTO-CALCULATED NET OFFSET</span>
         </div>
-        <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 2 }}>
-          Multi-payer expenses calculated automatically. All balances reconciled and synced through UPI instant payouts.
-        </p>
-
-        <div className="ledger-3boxes-row">
-          <div className="ledger-box">
-            <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 800 }}>YOUR OUTFLOW</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '2px 0' }}>₹26,500</div>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>62.3% of total cost</div>
+        <p className="split-sub">Selected context: <strong>Goa Coastal Odyssey</strong> (50/50 Dual Allocation Model)</p>
+        <div className="split-4col">
+          <div className="split-person">
+            <div className="person-row"><span className="avatar black">AS</span><div><strong>Aryan Sharma</strong><span>Primary Cardholder</span></div></div>
+            <div className="contrib mono">TOTAL CONTRIBUTED</div>
+            <div className="contrib-val">₹24,500</div>
           </div>
-
-          <div className="ledger-box">
-            <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 800 }}>PRIYA SHARMA PAID</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '2px 0' }}>₹16,000</div>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>37.7% of total cost</div>
+          <div className="split-person">
+            <div className="person-row"><span className="avatar blue">RM</span><div><strong>Rohan Mehta</strong><span>Co-Traveler</span></div></div>
+            <div className="contrib mono">TOTAL CONTRIBUTED</div>
+            <div className="contrib-val">₹18,000</div>
           </div>
-
-          <div className="ledger-box" style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}>
-            <div style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 800 }}>NET BALANCE</div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#16a34a', margin: '2px 0' }}>✔ Fully Settled</div>
-            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>₹5,250 transferred via UPI</div>
+          <div className="split-net">
+            <div className="mono">NET BALANCE DIRECTION <span>→</span></div>
+            <div className="net-text">Rohan owes Aryan</div>
+            <div className="net-val">₹3,250</div>
+            <div className="mono net-target">Equilibrium Target: ₹21,250 each</div>
           </div>
-
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0f172a' }}>Corporate Tax Claim</div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', margin: '2px 0 6px' }}>Need to claim GST-registered expenses?</div>
-            <button className="btn-ws-secondary" style={{ fontSize: '0.72rem', padding: '4px 8px' }}>
-              Export Claim Sheet (GST / Form 16)
-            </button>
+          <div className="split-settle">
+            <span className="mono">⛉ <span className="rail-badge">INSTANT RAIL</span></span>
+            <button className="settle-btn" onClick={() => alert('UPI settle link generated...')}>Settle via UPI / Bank ↗</button>
+            <span className="settle-sub">Zero fee transfer via NPCI rail</span>
           </div>
         </div>
       </div>
 
-      {/* Granular Itemized Transaction Log (Data Table) */}
-      <div className="transactions-table-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      {/* Transaction ledger */}
+      <div className="txn-card">
+        <div className="txn-head">
           <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-              Granular Itemized Transaction Log
-            </h3>
-            <p style={{ fontSize: '0.75rem', color: '#64748b' }}>
-              Audited transaction records, OCR invoice match flags, and co-traveler splits.
-            </p>
+            <strong>⛉ Audited Transaction Ledger</strong>
+            <p>Seven-tier itemization cross-validated against merchant MCC codes and GST vouchers.</p>
           </div>
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 10px' }}>
-              <Search size={12} color="#64748b" />
-              <input
-                type="text"
-                placeholder="Search vendor, item or PNR..."
-                value={searchTableQuery}
-                onChange={(e) => setSearchTableQuery(e.target.value)}
-                style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.78rem', marginLeft: 6, width: 160 }}
-              />
-            </div>
-            <select style={{ padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '0.75rem' }}>
-              <option>All Categories ▾</option>
-            </select>
+          <div className="txn-filter">
+            <input placeholder="Filter line items..." value={searchTableQuery} onChange={(e) => setSearchTableQuery(e.target.value)} />
+            <Search size={13} />
           </div>
         </div>
-
-        <table className="data-table-clean">
+        <table className="data-table-clean txn-table">
           <thead>
             <tr>
               <th>DATE &amp; TRIP</th>
-              <th>EXPENSE ITEM &amp; VENDOR</th>
+              <th>EXPENSE ITEM</th>
               <th>CATEGORY</th>
-              <th>PAYER / SPLIT</th>
-              <th>RECEIPT &amp; PROOF</th>
+              <th>PAYER</th>
+              <th>RECEIPT VOUCHER</th>
               <th>STATUS</th>
-              <th style={{ textAlign: 'right' }}>TOTAL AMOUNT</th>
+              <th style={{ textAlign: 'right' }}>AMOUNT</th>
             </tr>
           </thead>
           <tbody>
-            {transactionLogs.map((row, idx) => (
+            {filteredTxns.map((row, idx) => (
               <tr key={idx}>
-                <td>
-                  <strong>{row.date}</strong>
-                  <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{row.trip}</div>
-                </td>
-                <td>
-                  <strong>{row.item}</strong>
-                  <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{row.itemSub}</div>
-                </td>
-                <td>
-                  <span style={{ background: '#f0f9ff', color: '#025a9e', padding: '2px 8px', borderRadius: 4, fontWeight: 700, fontSize: '0.72rem' }}>
-                    {row.category}
-                  </span>
-                </td>
-                <td style={{ whiteSpace: 'pre-line', fontSize: '0.75rem' }}>{row.payer}</td>
-                <td>
-                  <a href="#voucher" style={{ color: '#025a9e', fontWeight: 600, fontSize: '0.75rem' }}>
-                    📄 {row.receipt}
-                  </a>
-                </td>
-                <td>
-                  <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.75rem' }}>
-                    ● {row.status}
-                  </span>
-                </td>
-                <td style={{ textAlign: 'right', fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
-                  {row.amount}
-                </td>
+                <td><strong>{row.date}</strong><div className="td-sub">{row.trip}</div></td>
+                <td><strong>{row.item}</strong><div className="td-sub">{row.itemSub}</div></td>
+                <td><span className="cat-pill">✦ {row.category}</span></td>
+                <td><span className={`payer-avatar ${row.payer === 'AS' ? 'black' : 'blue'}`}>{row.payer}</span> {row.payerName}</td>
+                <td><span className="receipt-link mono">◈ {row.receipt}</span></td>
+                <td><span className="verified-pill">● Verified</span></td>
+                <td style={{ textAlign: 'right', fontWeight: 800 }}>{row.amount}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        <div className="txn-foot mono">
+          <span>◈ Ledger Hash: 0x03FA600C12E7BC822019AAEF</span>
+          <span>Showing {filteredTxns.length} of 48 items <button>‹</button> <button className="active">1</button> <button>›</button></span>
+        </div>
       </div>
     </div>
   );

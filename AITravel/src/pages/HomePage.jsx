@@ -3,17 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useTrip } from '../context/TripContext';
 import {
   MapPin,
-  Users,
+  Minus,
+  Plus,
   Calendar,
-  IndianRupee,
-  Sparkles,
   Zap,
-  Globe,
   Star,
-  Heart,
-  MessageSquare,
   Send,
-  CheckCircle2,
 } from 'lucide-react';
 import AIChatDrawer from '../components/AIChatDrawer';
 
@@ -25,7 +20,7 @@ const HomePage = () => {
   const [destination, setDestination] = useState('Goa, India');
   const [travelers, setTravelers] = useState(2);
   const [duration, setDuration] = useState(5);
-  const [budget, setBudget] = useState(50000);
+  const [budget] = useState(50000);
 
   // Filter state for Trending Destinations
   const [activeRegion, setActiveRegion] = useState('All Regions');
@@ -39,13 +34,16 @@ const HomePage = () => {
   const [demoChatHistory, setDemoChatHistory] = useState([
     {
       role: 'user',
-      text: 'Plan 4 DAYS GOA TRIP for 2 people with beachside stays & vegetarian dining. Keep budget under ₹50,000.',
+      text: 'Find a quiet sunset cafe in South Goa with vegan dessert under ₹800.',
     },
     {
       role: 'ai',
-      text: 'Here is a curated 4-Day North & South Goa split! Focused on tranquil Mandrem sunsets, heritage Fontainhas walks, and verified vegetarian cafes.',
-      chips: ['📍 2 Core Hubs', '🥗 100% Veg Cafes', '🏨 Beachfront Villa', '💰 ₹42,500 Total Est.'],
-      day1: 'Day 1: Arrival & Mandrem Sunset • 10:00 AM: Check-in at Dunes Sea Breeze • 01:30 PM: Lunch at Bean Me Up (100% Organic Vegan)...',
+      text: 'Found 2 high-matching spots along Palolem & Agonda with undisturbed ocean views and plant-based pastry kitchens:',
+      spots: [
+        { name: "Clara's Palolem", time: '1930', rating: '4.8' },
+        { name: 'DROPADI Agonda', time: '1730', rating: '4.9' },
+      ],
+      slot: 'Scheduled slot: 17:30 - 19:15 IST',
     },
   ]);
 
@@ -74,8 +72,12 @@ const HomePage = () => {
       { role: 'user', text: userText },
       {
         role: 'ai',
-        text: `Understood! Updating your itinerary for "${userText}". Adding verified recommendations with instant Google Maps routing.`,
-        chips: ['⚡ Updated Route', '📍 Verified Coordinates', '✨ Optimized Budget'],
+        text: 'Found 2 high-matching spots along Palolem & Agonda with undisturbed ocean views and plant-based pastry kitchens:',
+        spots: [
+          { name: "Clara's Palolem", time: '1930', rating: '4.8' },
+          { name: 'DROPADI Agonda', time: '1730', rating: '4.9' },
+        ],
+        slot: 'Scheduled slot: 17:30 - 19:15 IST',
       },
     ]);
     setDemoInput('');
@@ -83,47 +85,41 @@ const HomePage = () => {
 
   const trendingDestinations = [
     {
-      name: 'Goa',
-      country: 'INDIA',
+      name: 'Goa, IN',
       rating: '4.9',
-      topPick: true,
-      desc: 'Sun-kissed beaches, heritage Portuguese villas, sunset coastal dining...',
+      desc: 'Golden shoreline hideaways, heritage Portuguese villas, and...',
       cost: '₹34,500',
       img: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=600&q=80',
       category: 'Tropical',
     },
     {
-      name: 'Bali',
-      country: 'INDONESIA',
+      name: 'Bali, ID',
       rating: '4.8',
-      desc: 'Lush terraced valley retreats, sacred cliffside temples, and beach clubs...',
+      desc: 'Cliffside sanctuaries in Uluwatu, lush inland artisan jungle...',
       cost: '₹54,000',
       img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=600&q=80',
       category: 'Tropical',
     },
     {
-      name: 'Dubai',
-      country: 'UAE',
+      name: 'Dubai, AE',
       rating: '4.9',
-      desc: 'Modern desert safari glamping, hyper-luxury shopping, and architecture...',
-      cost: '₹68,500',
+      desc: 'Hyper-modern architecture, desert luxury camps, and...',
+      cost: '₹65,500',
       img: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=600&q=80',
       category: 'Cultural',
     },
     {
-      name: 'Paris',
-      country: 'FRANCE',
+      name: 'Paris, FR',
       rating: '4.9',
-      desc: 'Artisan bakeries, world-class gallery walks, Seine cruise dinners...',
+      desc: 'Boutique galleries in Le Marais, curated wine bistros, and historic',
       cost: '₹85,000',
       img: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=600&q=80',
       category: 'Cultural',
     },
     {
-      name: 'London',
-      country: 'UK',
-      rating: '4.7',
-      desc: 'Regal landscape walking tours, Michelin gastronomy, West End shows...',
+      name: 'London, UK',
+      rating: '4.9',
+      desc: 'Historic private clubs, iconic brutalist theatre districts, and...',
       cost: '₹92,000',
       img: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=600&q=80',
       category: 'Cultural',
@@ -137,175 +133,123 @@ const HomePage = () => {
 
   return (
     <div className="home-page-root">
-      {/* ===================================================================
-          HERO SECTION
-          =================================================================== */}
+      {/* ================= HERO ================= */}
       <section className="hero-container">
-        <div className="hero-pill-badge blue-style">
-          <span>✦ HYPER-EFFICIENT TRAVEL INTELLIGENCE 2.0 ✦</span>
+        <div className="hero-pill-badge">
+          <span className="dot" />
+          <span>HYPER-EFFICIENT TRAVEL INTELLIGENCE 2.0</span>
+          <span className="dot" />
         </div>
 
         <h1 className="hero-main-title">
-          Plan Your Perfect Trip With <span className="hero-title-ai">AI</span>{' '}
+          Plan Your Perfect Trip With <span className="hero-title-ai">AI</span>
           <span className="hero-title-precision">Precision</span>
         </h1>
 
         <p className="hero-subtext">
-          Discover amazing destinations, build personalized hour-by-hour itineraries, find secret boutique stays, and forecast travel budgets down to the rupee.
+          Discover amazing destinations, build personalized hour-by-hour itineraries, find
+          secret boutique stays, and forecast travel budgets down to the rupee.
         </p>
 
         <div className="hero-cta-group">
           <button className="btn-hero-primary" onClick={() => handleStartPlanning()}>
-            <Zap size={16} />
+            <Zap size={13} />
             <span>Plan My Trip</span>
           </button>
-          <button className="btn-hero-secondary" onClick={() => document.getElementById('trending-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <Globe size={16} />
+          <button
+            className="btn-hero-secondary"
+            onClick={() => document.getElementById('trending-section')?.scrollIntoView({ behavior: 'smooth' })}
+          >
             <span>Explore Destinations</span>
           </button>
         </div>
 
-        {/* ===================================================================
-            FLOATING SEARCH / FILTER WIDGET
-            =================================================================== */}
+        {/* Search widget */}
         <div className="hero-widget-card">
-          {/* Field 1: Destination */}
           <div className="widget-field-box">
-            <div className="widget-label-row">
-              <MapPin size={12} className="widget-icon" />
-              <span>Destination</span>
+            <div className="widget-label-row"><span>DESTINATION</span></div>
+            <div className="widget-dest-input">
+              <MapPin size={13} className="widget-icon" />
+              <input
+                type="text"
+                className="widget-input"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                placeholder="Goa, India"
+              />
             </div>
-            <input
-              type="text"
-              className="widget-input"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              placeholder="e.g. Goa, India"
-            />
             <div className="widget-tags-row">
-              {['Goa', 'Bali', 'Dubai', 'Paris', 'Tokyo'].map((tag) => (
-                <span
-                  key={tag}
-                  className="widget-tag-chip"
-                  onClick={() => handleQuickDestinationSelect(tag)}
-                >
+              {['Goa', 'Bali', 'Dubai', 'Paris'].map((tag) => (
+                <span key={tag} className="widget-tag-chip" onClick={() => handleQuickDestinationSelect(tag)}>
                   {tag}
                 </span>
               ))}
             </div>
           </div>
 
-          {/* Field 2: Travelers */}
           <div className="widget-field-box">
-            <div className="widget-label-row">
-              <Users size={12} className="widget-icon" />
-              <span>Travelers</span>
-            </div>
-            <select
-              className="widget-select"
-              value={travelers}
-              onChange={(e) => setTravelers(Number(e.target.value))}
-            >
-              <option value={1}>1 Traveler (Solo)</option>
-              <option value={2}>2 Travelers ▾</option>
-              <option value={4}>4 Travelers (Group)</option>
-              <option value={6}>6+ Travelers</option>
-            </select>
-            <div className="widget-subtext">
-              {travelers === 2 ? 'Suitable for couples' : travelers === 1 ? 'Solo explorer' : 'Group travel'}
+            <div className="widget-label-row"><span>TRAVELERS</span></div>
+            <div className="widget-stepper-row">
+              <div>
+                <div className="widget-main-val"><span className="mini-icon">👥</span> {travelers} Travelers</div>
+                <div className="widget-subtext">Couples / Solo / Group</div>
+              </div>
+              <div className="widget-step-btns">
+                <button onClick={() => setTravelers(Math.max(1, travelers - 1))}><Minus size={11} /></button>
+                <button onClick={() => setTravelers(Math.min(12, travelers + 1))}><Plus size={11} /></button>
+              </div>
             </div>
           </div>
 
-          {/* Field 3: Duration */}
           <div className="widget-field-box">
-            <div className="widget-label-row">
-              <Calendar size={12} className="widget-icon" />
-              <span>Duration</span>
-            </div>
-            <select
-              className="widget-select"
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
-            >
-              <option value={3}>3 Days (Weekend) ▾</option>
-              <option value={5}>5 Days (Quick) ▾</option>
-              <option value={7}>7 Days (Classic) ▾</option>
-              <option value={10}>10 Days (Deep Dive) ▾</option>
-            </select>
-            <div className="widget-subtext">Recommended pace</div>
-          </div>
-
-          {/* Field 4: Est. Budget */}
-          <div className="widget-field-box">
-            <div className="widget-label-row">
-              <IndianRupee size={12} className="widget-icon" />
-              <span>Est. Total Budget</span>
-            </div>
-            <div className="widget-budget-wrapper">
-              <input
-                type="text"
-                className="widget-input"
-                value={`₹${budget.toLocaleString()}`}
-                onChange={(e) => {
-                  const val = Number(e.target.value.replace(/[^0-9]/g, '')) || 10000;
-                  setBudget(val);
-                }}
-              />
-              <span className="widget-custom-badge">₹ Custom</span>
-            </div>
-            <div className="widget-subtext">
-              ~₹{Math.round(budget / (travelers || 1)).toLocaleString()} / person
+            <div className="widget-label-row"><span>DURATION</span></div>
+            <div className="widget-stepper-row">
+              <div>
+                <div className="widget-main-val"><Calendar size={12} className="widget-icon" /> {duration} Days</div>
+                <div className="widget-subtext">Flexible window</div>
+              </div>
+              <div className="widget-step-btns">
+                <button onClick={() => setDuration(Math.max(1, duration - 1))}><Minus size={11} /></button>
+                <button onClick={() => setDuration(Math.min(30, duration + 1))}><Plus size={11} /></button>
+              </div>
             </div>
           </div>
 
-          {/* Submit button */}
+          <div className="widget-field-box">
+            <div className="widget-label-row">
+              <span>EST. BUDGET</span>
+              <span className="widget-custom-badge">✦ Custom</span>
+            </div>
+            <div className="widget-main-val">₹{budget.toLocaleString('en-IN')}</div>
+            <div className="widget-subtext">~₹{Math.round(budget / (travelers || 1)).toLocaleString('en-IN')} / person</div>
+          </div>
+
           <div>
             <button className="btn-widget-submit" onClick={() => handleStartPlanning()}>
-              <Sparkles size={16} />
-              <span>Start Planning</span>
+              <span className="submit-main">Start Planning →</span>
+              <span className="submit-sub">● AUTO-SYNTHESIZING</span>
             </button>
           </div>
         </div>
 
-        {/* Social Proof Row */}
         <div className="hero-social-proof">
-          <span>
-            <Star size={14} className="star-yellow" fill="#f59e0b" />
-            <strong>4.9/5</strong> Average Rating
-          </span>
-          <span>•</span>
-          <span>
-            <Globe size={14} />
-            <strong>85</strong> Global Countries
-          </span>
-          <span>•</span>
-          <span>
-            <Zap size={14} color="#025a9e" />
-            <strong>Instant Generation</strong> (&lt;15s)
-          </span>
+          <div className="proof-pill">
+            <span><Star size={11} fill="#f59e0b" color="#f59e0b" /> <strong>4.9/5 Average Rating</strong></span>
+            <span className="sep">|</span>
+            <span><strong>85</strong> Global Countries</span>
+            <span className="sep">|</span>
+            <span><span className="green-dot" /> <strong>Instant Generation</strong> (&lt;15s)</span>
+          </div>
         </div>
       </section>
 
-      {/* ===================================================================
-          CURATED HOTSPOTS / TRENDING DESTINATIONS
-          =================================================================== */}
+      {/* ================= TRENDING ================= */}
       <section className="section-wrapper" id="trending-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <div className="section-top-label">✦ CURATED HOTSPOTS</div>
-          <button className="btn-ask-travelai-float" onClick={() => setIsAIChatOpen(true)}>
-            <MessageSquare size={14} />
-            <span>Ask TravelAI ▾</span>
-          </button>
-        </div>
-
-        <div className="section-header-row">
+        <div className="section-top-row">
           <div>
+            <div className="section-top-label">◉ CURATED HOTSPOTS</div>
             <h2 className="section-headline">Trending Destinations This Season</h2>
-            <p className="section-subtitle-text">
-              Only approved destinations with live search/light routes, vetted experiences/curated stays, and vetted hospitality partners.
-            </p>
           </div>
-
           <div className="filter-pills-group">
             {['All Regions', 'Tropical', 'Cultural'].map((reg) => (
               <button
@@ -316,42 +260,29 @@ const HomePage = () => {
                 {reg}
               </button>
             ))}
+            <button className="btn-ask-travelai-float" onClick={() => setIsAIChatOpen(true)}>
+              <span>✦ Ask TravelAI</span>
+            </button>
           </div>
         </div>
 
-        {/* 5 Cards Row */}
         <div className="destinations-5grid">
           {filteredHotspots.map((item) => (
             <div key={item.name} className="dest-clean-card">
               <div className="dest-card-img-wrap">
                 <img src={item.img} alt={item.name} loading="lazy" />
-                {item.topPick && <span className="dest-top-pick-badge">TOP PICK</span>}
-                <span className="dest-rating-pill">
-                  <Star size={10} fill="#f59e0b" color="#f59e0b" />
-                  {item.rating}
-                </span>
-                <button className="dest-fav-btn" title="Save destination">
-                  <Heart size={13} />
-                </button>
+                <span className="dest-top-pick-badge">TOP PICK</span>
+                <span className="dest-rating-pill">★ {item.rating}</span>
               </div>
-
               <div className="dest-card-content">
-                <div className="dest-title-row">
-                  <span className="dest-name-title">{item.name}</span>
-                  <span className="dest-country-label">{item.country}</span>
-                </div>
-
+                <div className="dest-name-title">{item.name}</div>
                 <p className="dest-card-desc">{item.desc}</p>
-
                 <div className="dest-card-bottom-row">
                   <div className="dest-cost-info">
-                    <span className="dest-cost-label">Avg. Cost</span>
-                    <span className="dest-cost-val">{item.cost}/person</span>
+                    <span className="dest-cost-label">AVG. COST</span>
+                    <span className="dest-cost-val">{item.cost} <span className="per">ⓘ</span></span>
                   </div>
-                  <button
-                    className="dest-btn-explore"
-                    onClick={() => handleStartPlanning(item.name)}
-                  >
+                  <button className="dest-btn-explore" onClick={() => handleStartPlanning(item.name.split(',')[0])}>
                     Explore
                   </button>
                 </div>
@@ -361,403 +292,210 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ===================================================================
-          INTELLIGENT WORKFLOW ("How TravelAI Engineers Your Trip")
-          =================================================================== */}
-      <section className="workflow-section-container">
-        <div className="hero-pill-badge blue-style" style={{ marginBottom: 12 }}>
-          <span>INTELLIGENT WORKFLOW</span>
-        </div>
-        <h2 className="section-headline">How TravelAI Engineers Your Trip</h2>
-        <p className="section-subtitle-text" style={{ margin: '6px auto 0', textAlign: 'center' }}>
-          From vague wanderlust to a synchronized, reservation-ready master schedule in under thirty seconds.
-        </p>
+      {/* ================= WORKFLOW ================= */}
+      <section className="section-wrapper workflow-center">
+        <div className="hero-pill-badge small"><span className="dot blue" /> INTELLIGENT WORKFLOW</div>
+        <h2 className="section-headline centered">How TravelAI Engineers Your Trip</h2>
 
         <div className="workflow-cards-grid">
-          {/* Card 01 */}
           <div className="workflow-card">
-            <div className="workflow-num-box">01</div>
+            <div className="workflow-top-row"><span className="workflow-num">01</span><span className="workflow-icon-box">◇</span></div>
             <h3>Choose Destination</h3>
-            <p>
-              Type any city, state, or region. Our engine cross-references real-time climatic data, local flight corridors, and season pricing trends.
-            </p>
-            <div className="workflow-feature-pill">
-              <Zap size={16} className="workflow-pill-icon" />
-              <div>
-                <span className="workflow-pill-title">Dynamic Routing</span>
-                <span className="workflow-pill-sub">Real-world transit estimation</span>
-              </div>
-            </div>
+            <p>Input broad concepts or pinpoint coordinates. Our vector discovery engine sorts through millions of regional data points to isolate ideal micro-seasons and secret locations.</p>
+            <span className="workflow-code-pill blue">●Vector Geospatial API</span>
           </div>
-
-          {/* Card 02 */}
           <div className="workflow-card">
-            <div className="workflow-num-box">02</div>
+            <div className="workflow-top-row"><span className="workflow-num">02</span><span className="workflow-icon-box">☰</span></div>
             <h3>Customize Preferences</h3>
-            <p>
-              Set your party profile, dietary limits (vegan, halal, etc.), budget threshold, and pacing funds relating your travel or fast paced ventures.
-            </p>
-            <div className="workflow-feature-pill">
-              <Sparkles size={16} className="workflow-pill-icon" />
-              <div>
-                <span className="workflow-pill-title">Hyper-Personalized</span>
-                <span className="workflow-pill-sub">Built for your exact party</span>
-              </div>
-            </div>
+            <p>Set rigid parameters. Jain dining, vegan requirements, boutique stay tiers, slow pacing, or packed high-adrenaline schedules. The engine conforms to your exact lifestyle.</p>
+            <span className="workflow-code-pill gray">●Constraint Solver v4</span>
           </div>
-
-          {/* Card 03 */}
           <div className="workflow-card">
-            <div className="workflow-num-box">03</div>
+            <div className="workflow-top-row"><span className="workflow-num">03</span><span className="workflow-icon-box"><Zap size={13} /></span></div>
             <h3>Get Your AI Plan</h3>
-            <p>
-              Instantly unlock day-by-day itineraries with opening hours, multi-modal schedules, offline-ready export, and automated expense trackers.
-            </p>
-            <div className="workflow-feature-pill">
-              <CheckCircle2 size={16} className="workflow-pill-icon" />
-              <div>
-                <span className="workflow-pill-title">Ready to Export</span>
-                <span className="workflow-pill-sub">Sync to Google Calendar &amp; Apple Wallet</span>
-              </div>
-            </div>
+            <p>Receive an actionable, hour-by-hour itinerary with integrated dynamic expense forecasting, transport transit times, and one-tap reservation synchronization.</p>
+            <span className="workflow-code-pill green">●15s Synthesis</span>
           </div>
         </div>
       </section>
 
-      {/* ===================================================================
-          CONVERSATIONAL COPILOT (TALK TO YOUR AI CONCIERGE)
-          =================================================================== */}
+      {/* ================= COPILOT ================= */}
       <section className="section-wrapper">
         <div className="copilot-grid-layout">
-          {/* Left Column */}
           <div>
-            <div className="section-top-label">✦ CONVERSATIONAL COPILOT</div>
+            <div className="section-top-label">◉ NEURAL ASSISTANT</div>
             <h2 className="section-headline">Talk to Your AI Travel Concierge</h2>
-            <p className="section-subtitle-text" style={{ margin: '8px 0 28px' }}>
-              Tell TravelAI your constraints in natural language. Change plans mid-trip, discover hidden culinary gems, or split costs on the fly.
+            <p className="section-subtitle-text">
+              Unlike static travel blogs, our hybrid conversational engine maintains context of your budget, pacing, and dietary restrictions to make live micro-adjustments on the fly.
             </p>
 
             <div className="copilot-feature-item">
-              <div className="copilot-feature-num">1</div>
+              <span className="copilot-feature-num">01.</span>
               <div>
                 <h4>Strict Dietary Matching</h4>
-                <p>Never wonder if a restaurant has pure vegetarian, gluten-free, or authentic delicacies.</p>
+                <p>Cross-references restaurant health logs for verified Jain, Halal, Kosher, and vegan preparation tables.</p>
               </div>
             </div>
 
             <div className="copilot-feature-item">
-              <div className="copilot-feature-num">2</div>
+              <span className="copilot-feature-num">02.</span>
               <div>
                 <h4>Dynamic Re-Routing</h4>
-                <p>Rained out? TravelAI reflows routes and indoor pivots without ceremony.</p>
+                <p>Sudden monsoon downpour or peak highway congestion triggers seamless indoor alternatives in under 2 seconds.</p>
               </div>
             </div>
 
-            <button
-              className="btn-copilot-demo"
-              onClick={() => {
-                setDemoInput('Find a quiet cafe near Calangute with sunset views');
-              }}
-            >
-              <Zap size={14} />
-              <span>Test with Demo Query</span>
+            <button className="btn-copilot-demo" onClick={() => setDemoInput('Find a quiet cafe near Palolem with sunset views')}>
+              <span>✎ Test with Demo Query</span>
             </button>
           </div>
 
-          {/* Right Column: Interactive Chat Mockup Window */}
           <div className="chat-mockup-card">
             <div className="chat-mockup-header">
-              <div className="chat-mockup-header-left">
-                <div className="brand-logo-icon" style={{ width: 22, height: 22 }}>
-                  <Sparkles size={12} />
-                </div>
-                <span>TravelAI Assistant</span>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>
-                  Hybrid Model: Gemini Pro + Places API
-                </span>
-              </div>
-              <span className="chat-mockup-latency">Latency: 180ms</span>
+              <span className="chat-dot" /> <strong>TravelAI Assistant</strong>
+              <span className="chat-model">Gemini Pro + Places API</span>
+              <span className="chat-mockup-latency"><span className="green-dot" /> Latency: 180ms</span>
             </div>
 
             <div className="chat-mockup-body">
               {demoChatHistory.map((msg, index) => (
-                <div
-                  key={index}
-                  className={msg.role === 'user' ? 'mockup-user-msg' : 'mockup-ai-msg'}
-                >
+                <div key={index} className={msg.role === 'user' ? 'mockup-user-msg' : 'mockup-ai-msg'}>
+                  {msg.role === 'user' && <span className="me-badge">ME</span>}
+                  {msg.role === 'ai' && <span className="ai-badge">AI</span>}
                   <p>{msg.text}</p>
-                  {msg.chips && (
-                    <div className="ai-chips-preview-row">
-                      {msg.chips.map((c, i) => (
-                        <span key={i} className="ai-chip-pill">{c}</span>
+                  {msg.spots && (
+                    <div className="ai-spots">
+                      {msg.spots.map((s) => (
+                        <div key={s.name} className="ai-spot-row">
+                          <span>{s.name}</span><span className="spot-meta">{s.time} • ★{s.rating}</span>
+                        </div>
                       ))}
+                      <div className="ai-slot-row"><span>◷ {msg.slot}</span><span className="preview-link">Preview Map ›</span></div>
                     </div>
                   )}
-                  {msg.day1 && (
-                    <div className="ai-itinerary-snippet">
-                      {msg.day1}
-                    </div>
-                  )}
-                  {msg.role === 'ai' && index === 1 && (
+                  {msg.role === 'ai' && (
                     <div className="ai-quick-actions-row">
-                      <button className="ai-action-chip-btn" onClick={() => handleStartPlanning('Goa')}>
-                        📄 VIEW FULL ITINERARY
-                      </button>
-                      <button className="ai-action-chip-btn" onClick={() => handleStartPlanning('Goa')}>
-                        💰 ADJUST EXPENSES
-                      </button>
+                      <button className="ai-action-chip-btn dark" onClick={() => handleStartPlanning('Goa')}>VIEW FULL ITINERARY</button>
+                      <button className="ai-action-chip-btn" onClick={() => handleStartPlanning('Goa')}>ADJUST EXPENSES</button>
                     </div>
                   )}
+                  {msg.role === 'ai' && <div className="ai-syn-note">●●● Synthesizing real-time seat availability</div>}
                 </div>
               ))}
             </div>
 
             <form onSubmit={handleSendDemoMessage} className="chat-mockup-input-bar">
+              <span className="input-mic">✦</span>
               <input
                 type="text"
                 value={demoInput}
                 onChange={(e) => setDemoInput(e.target.value)}
-                placeholder="Ask TravelAI to modify routes or add stops..."
+                placeholder="Ask TravelAI anything about your trip..."
               />
-              <button type="submit" className="btn-chat-send">
-                <Send size={14} />
-              </button>
+              <button type="submit" className="btn-chat-send"><Send size={13} /></button>
             </form>
           </div>
         </div>
       </section>
 
-      {/* ===================================================================
-          DYNAMIC EXPENSE BREAKDOWN
-          =================================================================== */}
+      {/* ================= EXPENSE ================= */}
       <section className="section-wrapper">
-        <div className="section-top-label">✦ TRANSPARENT BUDGET ENGINE</div>
-        <div className="section-header-row">
+        <div className="section-top-row">
           <div>
+            <div className="section-top-label">◉ TRANSPARENT BUDGET ENGINE</div>
             <h2 className="section-headline">Dynamic Expense Breakdown</h2>
-            <p className="section-subtitle-text">
-              See how group size and duration adjust real-time expenses in real-time. Never get surprised by hidden taxes.
-            </p>
           </div>
-
           <div className="filter-pills-group">
-            <button
-              className={`filter-pill-btn ${expenseDuration === 5 ? 'active' : ''}`}
-              onClick={() => setExpenseDuration(5)}
-            >
-              Standard (5 Days)
-            </button>
-            <button
-              className={`filter-pill-btn ${expenseDuration === 7 ? 'active' : ''}`}
-              onClick={() => setExpenseDuration(7)}
-            >
-              Premium (7 Days)
-            </button>
+            <button className={`filter-pill-btn dark ${expenseDuration === 5 ? 'active' : ''}`} onClick={() => setExpenseDuration(5)}>Standard 5 Days</button>
+            <button className={`filter-pill-btn ${expenseDuration === 7 ? 'active' : ''}`} onClick={() => setExpenseDuration(7)}>Premium 7 Days</button>
           </div>
         </div>
 
         <div className="expense-showcase-grid">
-          {/* Left Card: Total Estimate */}
           <div className="expense-total-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Est. Itinerary Total</span>
+            <div className="expense-top-row">
+              <span className="expense-label">EST. ITINERARY TOTAL</span>
               <span className="expense-badge-under">10% UNDER BUDGET</span>
             </div>
-
-            <div className="expense-huge-number">
-              ₹{expenseDuration === 5 ? '42,500' : '58,200'}
-            </div>
-            <p style={{ fontSize: '0.82rem', color: '#64748b' }}>
-              Estimated total with all taxes for whole party for entire {expenseDuration}-day stay.
-            </p>
-
+            <div className="expense-huge-number">₹{expenseDuration === 5 ? '42,500' : '58,200'}</div>
+            <p className="expense-desc">Includes pre-negotiated villa lodging, flights, verified restaurants, dynamic ground transit, and all sightseeing access tickets.</p>
             <div className="expense-buffer-box">
-              <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>
-                Predictive Buffer Added / <span style={{ color: '#16a34a' }}>Included</span>
-              </div>
-              Includes auto-estimated surge margin for peak season taxi fares and festival entry fees.
+              <div className="buffer-title">◉ Buffer Retained</div>
+              <p>₹7,500 safely retained in contingency reserve based on seasonal weather probabilities.</p>
             </div>
           </div>
 
-          {/* Right Card: Cost Allocation by Vertical */}
           <div className="expense-allocation-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                Cost Allocation by Vertical
-              </span>
+            <div className="expense-top-row">
+              <span className="expense-title">Cost Allocation by Vertical</span>
+              <span className="model-badge">Model: Precise-Weighted-V2</span>
             </div>
-
-            {/* Multi-segment progress bar */}
             <div className="multi-seg-bar">
-              <div className="seg-hotel" title="Stays 43%" />
-              <div className="seg-flight" title="Flights & Rail 29%" />
-              <div className="seg-food" title="Food & Dining 14%" />
-              <div className="seg-activity" title="Curated Activities 10%" />
-              <div className="seg-cab" title="Cabs & Scooters 4%" />
-              <div className="seg-surge" title="Surge & Buffer 3%" />
+              <div className="seg-hotel" /><div className="seg-flight" /><div className="seg-food" /><div className="seg-activity" /><div className="seg-cab" /><div className="seg-surge" />
             </div>
-
             <div className="expense-verticals-grid">
-              <div className="vertical-item-box">
-                <span className="vertical-label">🏨 Stays &amp; Stays</span>
-                <div className="vertical-amount">
-                  ₹{expenseDuration === 5 ? '18,500' : '25,000'}{' '}
-                  <span className="vertical-percent">43%</span>
-                </div>
-              </div>
-
-              <div className="vertical-item-box">
-                <span className="vertical-label">✈️ Flights &amp; Rail</span>
-                <div className="vertical-amount">
-                  ₹{expenseDuration === 5 ? '12,200' : '16,500'}{' '}
-                  <span className="vertical-percent">29%</span>
-                </div>
-              </div>
-
-              <div className="vertical-item-box">
-                <span className="vertical-label">🍽️ Food &amp; Dining</span>
-                <div className="vertical-amount">
-                  ₹{expenseDuration === 5 ? '6,000' : '8,400'}{' '}
-                  <span className="vertical-percent">14%</span>
-                </div>
-              </div>
-
-              <div className="vertical-item-box">
-                <span className="vertical-label">🎟️ Curated Activities</span>
-                <div className="vertical-amount">
-                  ₹{expenseDuration === 5 ? '4,000' : '5,500'}{' '}
-                  <span className="vertical-percent">10%</span>
-                </div>
-              </div>
-
-              <div className="vertical-item-box">
-                <span className="vertical-label">🚕 Cabs &amp; Scooters</span>
-                <div className="vertical-amount">
-                  ₹{expenseDuration === 5 ? '1,800' : '2,400'}{' '}
-                  <span className="vertical-percent">4%</span>
-                </div>
-              </div>
-
-              <div className="vertical-item-box">
-                <span className="vertical-label">🛡️ Surge &amp; Buffer</span>
-                <div className="vertical-amount">
-                  ₹{expenseDuration === 5 ? '1,500' : '2,000'}{' '}
-                  <span className="vertical-percent">3%</span>
-                </div>
-              </div>
+              <div className="vertical-item-box"><span className="dot black" /> Stays<div className="vertical-amount">43%</div><span className="vertical-sub">₹18,500</span></div>
+              <div className="vertical-item-box"><span className="dot blue" /> Flights<div className="vertical-amount">29%</div><span className="vertical-sub">₹12,200</span></div>
+              <div className="vertical-item-box"><span className="dot green" /> Food<div className="vertical-amount">14%</div><span className="vertical-sub">₹6,000</span></div>
+              <div className="vertical-item-box"><span className="dot orange" /> Activities<div className="vertical-amount">10%</div><span className="vertical-sub">₹4,000</span></div>
+              <div className="vertical-item-box"><span className="dot teal" /> Cabs<div className="vertical-amount">4%</div><span className="vertical-sub">₹1,800</span></div>
+              <div className="vertical-item-box"><span className="dot purple" /> Buffer<div className="vertical-amount">3%</div><span className="vertical-sub">₹1,500</span></div>
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, fontSize: '0.75rem', color: '#94a3b8' }}>
-              <span>*Calculated with real-time hotel API rates and typical seasonal restaurant spend in Goa.</span>
-              <a href="#tax" style={{ color: '#025a9e', fontWeight: 700 }}>Download Exact Tax Breakdown →</a>
+            <div className="expense-foot-row">
+              <span><span className="green-dot" /> Dynamic live sync with Indian Rupee rates</span>
+              <span className="export-link">Export Full Spreadsheet →</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ===================================================================
-          TESTIMONIALS (TRUSTED BY 250,000+ MODERN TRAVELERS)
-          =================================================================== */}
-      <section className="testimonials-section">
-        <div className="rating-stars-row">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <Star key={s} size={18} fill="#f59e0b" color="#f59e0b" />
-          ))}
-        </div>
-
-        <h2 className="section-headline">
-          Trusted by <span style={{ color: '#025a9e' }}>250,000+</span> Modern Travelers
-        </h2>
-        <p className="section-subtitle-text" style={{ margin: '6px auto 0', textAlign: 'center' }}>
-          Generated across 85 countries with a 4.9/5 satisfaction rating. Here is what real explorers say about their AI trips.
-        </p>
-
+      {/* ================= TESTIMONIALS ================= */}
+      <section className="section-wrapper testimonials-center">
+        <div className="rating-stars-row">★★★★★</div>
+        <h2 className="section-headline centered">Trusted by 250,000+ Modern Travelers</h2>
         <div className="testimonials-grid">
-          {/* Review 1 */}
           <div className="testimonial-card">
-            <div className="rating-stars-row" style={{ justifyContent: 'flex-start' }}>
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} size={14} fill="#f59e0b" color="#f59e0b" />
-              ))}
-            </div>
-            <p className="testimonial-quote">
-              "We planned our 5-day honeymoon in Bali using TravelAI. It routed our scooter trips between Ubud and Uluwatu. Honestly saved us when we caught heavy rain during early noon safari."
-            </p>
+            <div className="rating-stars-row small">★★★★★</div>
+            <p className="testimonial-quote">"TravelAI saved us nearly ₹20,000 on our Bali honeymoon trip simply by timing the regional transfers and suggesting hidden cliff villas instead of generic resorts."</p>
             <div className="testimonial-author-row">
               <div className="author-avatar-initials">AS</div>
-              <div>
-                <div className="author-name">Ananya Sharma</div>
-                <div className="author-role">Frequent Solo &amp; Couple Traveler</div>
-              </div>
+              <div><div className="author-name">Ananya Sharma</div><div className="author-role">Product Designer, Bengaluru</div></div>
             </div>
           </div>
-
-          {/* Review 2 */}
           <div className="testimonial-card">
-            <div className="rating-stars-row" style={{ justifyContent: 'flex-start' }}>
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} size={14} fill="#f59e0b" color="#f59e0b" />
-              ))}
-            </div>
-            <p className="testimonial-quote">
-              "The budget forecast was scary accurate. It predicted ₹48,000 for our South Goa trip and we ended up spending ₹47,600! The vegetarian restaurant recommendations were top tier."
-            </p>
+            <div className="rating-stars-row small">★★★★★</div>
+            <p className="testimonial-quote">"The strict vegan filter worked flawlessly in Tokyo and Dubai. We did not have to second guess a single menu. The hour-by-hour routing was mathematically perfect."</p>
             <div className="testimonial-author-row">
-              <div className="author-avatar-initials" style={{ background: '#fef3c7', color: '#d97706' }}>RM</div>
-              <div>
-                <div className="author-name">Rohan Mehta</div>
-                <div className="author-role">Tech Lead &amp; Weekend Roadtripper</div>
-              </div>
+              <div className="author-avatar-initials">RM</div>
+              <div><div className="author-name">Rohan Mehta</div><div className="author-role">Founder, Mumbai</div></div>
             </div>
           </div>
-
-          {/* Review 3 */}
           <div className="testimonial-card">
-            <div className="rating-stars-row" style={{ justifyContent: 'flex-start' }}>
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} size={14} fill="#f59e0b" color="#f59e0b" />
-              ))}
-            </div>
-            <p className="testimonial-quote">
-              "I used to spend 15 hours scrolling TripAdvisor and 20 browser tabs for Rome. TravelAI generated an art-lover's dream itinerary with skip-the-line museum slots in literally 30 seconds."
-            </p>
+            <div className="rating-stars-row small">★★★★★</div>
+            <p className="testimonial-quote">"When heavy rain struck South Goa, the AI concierge recalculated our whole afternoon into private spice plantation tastings in less than thirty seconds."</p>
             <div className="testimonial-author-row">
-              <div className="author-avatar-initials" style={{ background: '#ede9fe', color: '#7c3aed' }}>CL</div>
-              <div>
-                <div className="author-name">Claire Laurent</div>
-                <div className="author-role">Freelance Brand Strategist, Lyon</div>
-              </div>
+              <div className="author-avatar-initials">CL</div>
+              <div><div className="author-name">Claire Laroche</div><div className="author-role">Digital Nomad, Goa</div></div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ===================================================================
-          CALL TO ACTION BANNER (BOTTOM HERO CARD)
-          =================================================================== */}
+      {/* ================= CTA ================= */}
       <section className="cta-banner-wrapper">
         <div className="cta-banner-card">
-          <div className="cta-badge">
-            <span>ZERO COMMITMENT • INSTANT ACCESS</span>
+          <div>
+            <div className="cta-badge">● ZERO COMMITMENT</div>
+            <h2>Your Next Journey Awaits</h2>
+            <p>Generate unlimited custom routes, invite companions to vote on stays, and export direct to Apple Wallet or Google Calendar.</p>
           </div>
-
-          <h2>Your Next Sanctioned Journey Awaits</h2>
-          <p>
-            Join thousands of smart travelers who let TravelAI eliminate the headache of planning, budgeting, and scheduling.
-          </p>
-
           <div className="cta-actions-row">
-            <button className="btn-cta-gold" onClick={() => handleStartPlanning()}>
-              ⚡ Build Itinerary Now
-            </button>
-            <button className="btn-cta-outline" onClick={() => handleStartPlanning('Paris')}>
-              View Sample Plan
-            </button>
+            <button className="btn-cta-gold" onClick={() => handleStartPlanning()}>Build Itinerary Now</button>
+            <button className="btn-cta-outline" onClick={() => handleStartPlanning('Paris')}>View Sample Plan</button>
           </div>
         </div>
       </section>
 
-      {/* Floating AI Chat Assistant Drawer */}
       <AIChatDrawer
         isOpen={isAIChatOpen}
         onClose={() => setIsAIChatOpen(false)}

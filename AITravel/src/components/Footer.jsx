@@ -1,4 +1,4 @@
-import { Compass } from 'lucide-react';
+import { ShieldCheck, Gauge, Globe } from 'lucide-react';
 import { useState } from 'react';
 
 const Footer = () => {
@@ -20,78 +20,91 @@ const Footer = () => {
         {/* Brand column */}
         <div className="footer-brand-col">
           <div className="footer-brand-title">
-            <div className="brand-logo-icon" style={{ width: 28, height: 28 }}>
-              <Compass size={16} />
-            </div>
             <span>TravelAI</span>
-            <span className="brand-badge">TravelAI 2.0</span>
+            <span className="footer-version-badge">v2.0.4</span>
           </div>
           <p className="footer-description">
-            Precision-engineered autonomous travel design. Discover, curate, and optimize your global itineraries in seconds with predictive neural intelligence.
+            Algorithmic, zero-latency travel orchestration engine for modern explorers,
+            nomads, and high-precision logistics planning.
           </p>
           <div className="footer-badges-list">
-            <span className="footer-sec-pill">🔒 SOC2 Certified</span>
-            <span className="footer-sec-pill">⚡ &lt;15s Engine</span>
-            <span className="footer-sec-pill">🌐 85+ Global Hubs</span>
+            <span className="footer-sec-pill">
+              <ShieldCheck size={12} />
+              SOC2 TYPE II
+            </span>
+            <span className="footer-sec-pill">
+              <Gauge size={12} />
+              &lt;15s ENGINE
+            </span>
+            <span className="footer-sec-pill">
+              <Globe size={12} />
+              85+ COUNTRIES
+            </span>
           </div>
         </div>
 
         {/* Product Column */}
         <div className="footer-links-col">
-          <h4 className="footer-column-heading">Product</h4>
+          <h4 className="footer-column-heading">PRODUCT</h4>
           <ul className="footer-link-list">
-            <li><a href="/plan">Smart Engine</a></li>
-            <li><a href="/plan">AI Trip Planner</a></li>
-            <li><a href="/plan">Live Flights &amp; Stays</a></li>
-            <li><a href="#community">Community Itineraries</a></li>
+            <li><a href="/plan">Route Synthesizer</a></li>
+            <li><a href="/plan">Multi-Modal Flights</a></li>
+            <li><a href="/plan">Bespoke Lodging Matrix</a></li>
+            <li><a href="/plan">Autonomous Booking</a></li>
+            <li><a href="/plan">Telemetry API</a></li>
           </ul>
         </div>
 
         {/* Company Column */}
         <div className="footer-links-col">
-          <h4 className="footer-column-heading">Company</h4>
+          <h4 className="footer-column-heading">COMPANY</h4>
           <ul className="footer-link-list">
-            <li><a href="#about">About Us</a></li>
-            <li><a href="#destinations">Global Destinations</a></li>
-            <li><a href="#sustainability">Sustainability Pledge</a></li>
-            <li><a href="#privacy">Privacy &amp; Terms</a></li>
+            <li><a href="#blog">Engineering Blog</a></li>
+            <li><a href="#research">Research &amp; Benchmarks</a></li>
+            <li><a href="#wayfinding">Global Wayfinding</a></li>
+            <li><a href="#press">Press Kit</a></li>
+            <li>
+              <a href="#careers" className="careers-link">
+                Careers
+                <span className="hiring-badge">WE&apos;RE HIRING</span>
+              </a>
+            </li>
           </ul>
         </div>
 
-        {/* Stay Inspired Column */}
+        {/* Stay Synchronized Column */}
         <div className="footer-newsletter-col">
-          <h4 className="footer-column-heading">Stay Inspired</h4>
-          <p className="footer-description" style={{ margin: '0 0 10px 0' }}>
-            Receive curated season spots and algorithmic flight deal drops every week.
+          <h4 className="footer-column-heading">STAY SYNCHRONIZED</h4>
+          <p className="footer-description">
+            Receive weekly telemetry updates and algorithmic destination drops.
           </p>
           {subscribed ? (
-            <div style={{ color: '#16a34a', fontSize: '0.8rem', fontWeight: 700 }}>
-              ✓ Subscribed! Watch your inbox for weekly deal drops.
+            <div className="footer-subscribed-msg">
+              ✓ Subscribed! Watch your inbox for telemetry drops.
             </div>
           ) : (
             <form onSubmit={handleSubscribe} className="footer-newsletter-box">
               <input
                 type="email"
                 required
-                placeholder="Enter your email"
+                placeholder="Enter your terminal email..."
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
               <button type="submit">Join</button>
             </form>
           )}
-          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-            No spam. Unsubscribe at anytime.
-          </span>
         </div>
       </div>
 
       <div className="footer-bottom-bar">
-        <span>© 2026 TravelAI Inc. All rights reserved. Crafted for seamless wanderlust.</span>
+        <span>© 2026 TravelAI Systems Inc. All rights reserved.</span>
         <div className="footer-legal-links">
           <a href="#privacy">Privacy Policy</a>
+          <span className="legal-dot">•</span>
           <a href="#terms">Terms of Service</a>
-          <a href="#security">Security</a>
+          <span className="legal-dot">•</span>
+          <a href="#security">Security Architecture</a>
         </div>
       </div>
     </footer>

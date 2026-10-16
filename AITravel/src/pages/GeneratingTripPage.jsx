@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrip } from '../context/TripContext';
-import { Sparkles, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, Check } from 'lucide-react';
 
 const steps = [
   { title: 'Creating your trip...', desc: 'Setting up parameters and traveler profiles' },
@@ -11,6 +11,8 @@ const steps = [
   { title: 'Optimizing your route...', desc: 'Finalizing map coordinates and verified location data' },
 ];
 
+const pctMap = [18, 42, 64, 84, 98];
+
 const GeneratingTripPage = () => {
   const navigate = useNavigate();
   const { plannerState, generateTripPlan } = useTrip();
@@ -19,6 +21,10 @@ const GeneratingTripPage = () => {
   const [error, setError] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
+  const destination = plannerState.destination || 'Dubai, UAE';
+  const destCode = destination.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || 'DUBAI';
+  const pct = pctMap[Math.min(currentStepIndex, pctMap.length - 1)];
+
   const runGeneration = useCallback(async () => {
     setError(null);
     setIsRetrying(true);
@@ -26,7 +32,7 @@ const GeneratingTripPage = () => {
 
     const stepInterval = setInterval(() => {
       setCurrentStepIndex((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
-    }, 1200);
+    }, 1400);
 
     try {
       const trip = await generateTripPlan();
@@ -52,17 +58,22 @@ const GeneratingTripPage = () => {
   }, [runGeneration]);
 
   return (
-    <div className="generating-page-container">
-      <div className="generating-card">
-        <div className="sparkle-orbit-loader">
-          <div className="orbit-spinner">
-            <Sparkles size={36} className="orbit-sparkle" />
-          </div>
-        </div>
+    <div className="gen-page-root">
+      <div className="gen-top-badge mono">● ROUTE-SYNTH-V4 • {destCode}-G2</div>
 
-        <div className="generating-header">
-          <h2>Designing Your Dream Trip to <span className="highlight-destination">{plannerState.destination || 'Destination'}</span></h2>
-          <p>Sit back while our AI engine architects your personalized journey</p>
+      <h1 className="gen-title">
+        Designing Your Dream Trip to
+        <span className="gen-dest">{destination}</span>
+      </h1>
+      <p className="gen-sub">Sit back while our AI engine architects your personalized journey</p>
+
+      <div className="gen-card">
+        <div className="gen-card-head">
+          <span className="mono gen-prog-label">● AI SYNTHESIS PROGRESS <span className="pct-pill">{pct}%</span></span>
+          <span className="mono gen-model">MODEL: ROUTE-SYNTH-V4</span>
+        </div>
+        <div className="gen-progress-track">
+          <div className="gen-progress-fill" style={{ width: `${pct}%` }} />
         </div>
 
         {error ? (
@@ -81,34 +92,41 @@ const GeneratingTripPage = () => {
             </div>
           </div>
         ) : (
-          <div className="steps-progress-list">
+          <div className="gen-steps">
             {steps.map((s, idx) => {
               const isDone = idx < currentStepIndex;
               const isCurrent = idx === currentStepIndex;
               return (
-                <div
-                  key={idx}
-                  className={`progress-step-item ${isDone ? 'done' : ''} ${isCurrent ? 'active' : ''}`}
-                >
-                  <div className="step-status-icon">
-                    {isDone ? (
-                      <CheckCircle2 size={20} className="icon-done" />
-                    ) : isCurrent ? (
-                      <div className="step-mini-spinner" />
-                    ) : (
-                      <div className="step-dot" />
-                    )}
+                <div key={idx} className={`gen-step ${isDone ? 'done' : ''} ${isCurrent ? 'active' : ''}`}>
+                  <span className="gen-step-icon">
+                    {isDone ? <Check size={16} /> : isCurrent ? <span className="gen-spinner" /> : <span className="gen-dot" />}
+                  </span>
+                  <div className="gen-step-text">
+                    <strong>{s.title}</strong>
+                    <span>{s.desc}</span>
                   </div>
-                  <div className="step-info">
-                    <h4>{s.title}</h4>
-                    <p>{s.desc}</p>
-                  </div>
+                  <span className={`mono gen-status ${isDone ? 'complete' : isCurrent ? 'syncing' : 'queued'}`}>
+                    {isDone ? '● COMPLETE' : isCurrent ? '● ○ SYNCING...' : '○ QUEUED'}
+                  </span>
                 </div>
               );
             })}
           </div>
         )}
+
+        <div className="gen-card-foot">
+          <span className="mono gen-latency">◷ LATENCY: 114ms <span className="foot-sep">•</span> <span className="live-green">● LIVE RADAR</span></span>
+          <button className="cancel-gen-btn" onClick={() => navigate('/plan')}>Cancel Generation</button>
+        </div>
       </div>
+
+      <div className="gen-strip">
+        <div className="gen-mini mono">INDEXED: <strong>142 stays • 38 routes</strong></div>
+        <div className="gen-mini mono">PLACES API: <span className="live-green">● CONNECTED</span></div>
+        <div className="gen-mini mono">GEMINI: <span className="struct-blue">● STRUCTURING</span></div>
+      </div>
+
+      <div className="mono gen-geo">GEO-VECTOR: 25.2048° N, 55.2708° E • CLUSTER: AE-DXB-BURJ • ENCRYPTION: SHA-256</div>
     </div>
   );
 };
