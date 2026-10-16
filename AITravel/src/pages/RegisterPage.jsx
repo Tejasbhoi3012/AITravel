@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Compass, Mail, Lock, User, UserPlus, AlertCircle } from 'lucide-react';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 
 const RegisterPage = () => {
   const [name, setName] = useState('');
@@ -98,6 +99,8 @@ const RegisterPage = () => {
             <UserPlus size={18} />
             <span>{loading ? 'Creating Account...' : 'Sign Up Free'}</span>
           </button>
+
+          <GoogleSignInButton onError={setError} />
         </form>
 
         <div className="auth-footer">

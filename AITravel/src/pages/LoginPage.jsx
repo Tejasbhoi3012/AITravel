@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Compass, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -97,6 +98,8 @@ const LoginPage = () => {
           <button type="button" className="btn-auth-submit btn-demo-login" disabled={loading} onClick={handleDemoLogin} style={{ marginTop: 10, background: '#f1f5f9', color: '#0f172a' }}>
             <span>{loading ? 'Please wait...' : 'Try Demo Account'}</span>
           </button>
+
+          <GoogleSignInButton onError={setError} />
         </form>
 
         <div className="auth-footer">

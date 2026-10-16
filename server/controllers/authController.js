@@ -1,5 +1,8 @@
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const generateToken = (id) => {
   return jwt.sign(
@@ -81,12 +84,35 @@ export const loginUser = async (req, res, next) => {
   }
 };
 
-// @desc    Google OAuth Login / Register
+// @desc    Google OAuth Login / Register (verifies ID token server-side)
 // @route   POST /api/auth/google
 // @access  Public
 export const googleLogin = async (req, res, next) => {
   try {
-    const { name, email, googleId, profileImage } = req.body;
+    let { name, email, googleId, profileImage } = req.body;
+
+    // Preferred flow: verify the Google ID token (credential) cryptographically
+    if (req.body.credential) {
+      if (!process.env.GOOGLE_CLIENT_ID) {
+        return res.status(500).json({ success: false, message: 'Google sign-in is not configured on the server' });
+      }
+      try {
+        const ticket = await googleClient.verifyIdToken({
+          idToken: req.body.credential,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        if (!payload?.email) {
+          return res.status(401).json({ success: false, message: 'Invalid Google credential' });
+        }
+        email = payload.email;
+        name = payload.name || payload.email.split('@')[0];
+        googleId = payload.sub;
+        profileImage = payload.picture || '';
+      } catch {
+        return res.status(401).json({ success: false, message: 'Google verification failed' });
+      }
+    }
 
     if (!email) {
       return res.status(400).json({ success: false, message: 'Google account email is required' });
