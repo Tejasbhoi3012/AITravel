@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle, Save } from 'lucide-react';
 
 const ProfilePage = () => {
   const { user, updateProfile } = useAuth();
@@ -11,12 +11,29 @@ const ProfilePage = () => {
   const [savedMessage, setSavedMessage] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [cardState, setCardState] = useState('Default');
+  const [avatarFailed, setAvatarFailed] = useState(false);
+
+  const isLoading = saving;
+  const isSuccess = !saving && cardState === 'Success';
+  const isInvalid = !saving && cardState === 'Validation Error';
+
+  const avatarInitial = user?.name?.trim()?.[0]?.toUpperCase() || 'T';
+  const showAvatarPhoto = user?.profileImage && !avatarFailed;
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    setSaving(true);
     setError('');
     setSavedMessage('');
+
+    if (!name.trim()) {
+      setCardState('Validation Error');
+      setError('Full name is required');
+      return;
+    }
+
+    setSaving(true);
+    setCardState('Default');
 
     try {
       await updateProfile({
@@ -27,35 +44,39 @@ const ProfilePage = () => {
         },
       });
       setSavedMessage('Profile and preferences updated successfully!');
-      setTimeout(() => setSavedMessage(''), 3000);
+      setCardState('Success');
+      setTimeout(() => setCardState('Default'), 2500);
+      setTimeout(() => setSavedMessage(''), 3200);
     } catch (err) {
       setError(err.message || 'Failed to update profile');
+      setCardState('Validation Error');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="profile-page-container">
-      <div className="profile-card">
-        <div className="profile-header">
+    <div className="profile-page-v2">
+      <div className={`profile-card ${isLoading ? 'is-loading' : ''} ${isSuccess ? 'is-success' : ''}`}>
+        <div className="profile-avatar-wrap">
           <div className="profile-avatar-circle">
-            {user?.profileImage ? (
+            {showAvatarPhoto ? (
               <img
                 src={user.profileImage}
                 alt="Profile"
                 className="profile-avatar-img"
                 referrerPolicy="no-referrer"
+                onError={() => setAvatarFailed(true)}
               />
             ) : (
-              <User size={36} />
+              <span>{avatarInitial}</span>
             )}
           </div>
-          <div>
-            <h2>User Profile</h2>
-            <p>{user?.email || 'Logged in Traveler'}</p>
-          </div>
+          <span className="profile-avatar-status" />
         </div>
+
+        <h1 className="profile-title">User Profile</h1>
+        <p className="profile-email">{user?.email || 'Logged in Traveler'}</p>
 
         {savedMessage && (
           <div className="alert-success-banner">
@@ -72,19 +93,21 @@ const ProfilePage = () => {
         )}
 
         <form onSubmit={handleSaveProfile} className="profile-form">
-          <div className="form-group">
-            <label>Full Name</label>
+          <div className={`form-group ${isInvalid ? 'has-error' : ''}`}>
+            <label htmlFor="profile-name">Full Name</label>
             <input
+              id="profile-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
+            {isInvalid && <span className="field-error">Name cannot be empty</span>}
           </div>
 
           <div className="form-group">
-            <label>Default Currency</label>
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <label htmlFor="profile-currency">Default Currency</label>
+            <select id="profile-currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               <option value="USD">USD ($)</option>
               <option value="INR">INR (₹)</option>
               <option value="EUR">EUR (€)</option>
@@ -93,8 +116,8 @@ const ProfilePage = () => {
           </div>
 
           <div className="form-group">
-            <label>Primary Travel Style</label>
-            <select value={travelStyle} onChange={(e) => setTravelStyle(e.target.value)}>
+            <label htmlFor="profile-style">Primary Travel Style</label>
+            <select id="profile-style" value={travelStyle} onChange={(e) => setTravelStyle(e.target.value)}>
               <option value="balanced">Balanced & Cultural</option>
               <option value="budget">Budget Friendly Explorer</option>
               <option value="luxury">Luxury & Fine Dining</option>
@@ -102,8 +125,32 @@ const ProfilePage = () => {
             </select>
           </div>
 
-          <button type="submit" className="btn-primary" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Profile Changes'}
+          <div className="sync-panel">
+            <div className="sync-row">
+              <span className="sync-node">NODE ID : #TRV-88902-IN</span>
+              <span className={`sync-state ${isSuccess ? 'is-synced' : ''}`}>
+                <span className="sync-state-dot" /> {isSuccess ? 'SYNCED' : 'SECURE SYNC'}
+              </span>
+            </div>
+            <div className="sync-track">
+              <div className="sync-fill" />
+            </div>
+            <p className="sync-caption">Profile synchronization active across 3 regional cluster endpoints.</p>
+          </div>
+
+          <button
+            type="submit"
+            className={`btn-save-profile ${isSuccess ? 'is-success' : ''}`}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <span className="btn-spinner" />
+            ) : isSuccess ? (
+              <Check size={18} />
+            ) : (
+              <Save size={18} />
+            )}
+            {isLoading ? 'Saving...' : isSuccess ? 'Saved!' : 'Save Profile Changes'}
           </button>
         </form>
       </div>

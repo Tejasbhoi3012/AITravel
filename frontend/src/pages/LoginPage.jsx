@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, ArrowRight, Check } from 'lucide-react';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 
@@ -13,14 +14,27 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
+  const { addNotification } = useNotifications();
   const navigate = useNavigate();
+
+  const notifyLogin = (data) => {
+    addNotification(
+      {
+        type: 'auth',
+        title: 'Logged in successfully',
+        message: `Welcome back, ${data.user?.name || 'traveler'}`,
+      },
+      data.user?._id || data.user?.email
+    );
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      const data = await login(email, password);
+      notifyLogin(data);
       navigate('/my-trips');
     } catch (err) {
       setError(err.message || 'Invalid credentials');
@@ -33,7 +47,8 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      await login('traveler@example.com', 'traveler123');
+      const data = await login('traveler@example.com', 'traveler123');
+      notifyLogin(data);
       navigate('/my-trips');
     } catch {
       setError('Demo login failed. Please sign up for a new account.');

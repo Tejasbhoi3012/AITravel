@@ -1,110 +1,98 @@
-import { ShieldCheck, Gauge, Globe } from 'lucide-react';
-import { useState } from 'react';
+import { Linkedin, Github, Mail } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+const LINKEDIN_URL = 'https://www.linkedin.com/in/tejas-bhoi';
+const GITHUB_URL = 'https://github.com/Tejasbhoi3012';
+const EMAIL = 'tejas302002@gmail.com';
+const CONTACT_URL = `mailto:${EMAIL}`;
+
+const QUICK_LINKS = [
+  { label: 'Home', to: '/' },
+  { label: 'Explore Destinations', to: '/' },
+  { label: 'AI Trip Planner', to: '/plan' },
+  { label: 'My Trips', to: '/my-trips' },
+  { label: 'About', to: '/' },
+];
+
+const CONNECT_LINKS = [
+  { label: 'LinkedIn', href: LINKEDIN_URL, icon: Linkedin, external: true },
+  { label: 'GitHub', href: GITHUB_URL, icon: Github, external: true },
+  { label: 'Email', href: CONTACT_URL, icon: Mail, external: false },
+];
 
 const Footer = () => {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    if (email.trim()) {
-      setSubscribed(true);
-      setEmail('');
-      setTimeout(() => setSubscribed(false), 4000);
-    }
-  };
-
   return (
     <footer className="travel-footer">
       <div className="footer-inner-grid">
         {/* Brand column */}
         <div className="footer-brand-col">
           <div className="footer-brand-title">
+            <span className="black-logo footer-logo-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m22 2-7 20-4-9-9-4Z" />
+                <path d="M22 2 11 13" />
+              </svg>
+            </span>
             <span>TravelAI</span>
-            <span className="footer-version-badge">v2.0.4</span>
           </div>
           <p className="footer-description">
-            Algorithmic, zero-latency travel orchestration engine for modern explorers,
-            nomads, and high-precision logistics planning.
+            Next-gen AI travel planner empowering explorers with personalized,
+            zero-latency itineraries.
           </p>
-          <div className="footer-badges-list">
-            <span className="footer-sec-pill">
-              <ShieldCheck size={12} />
-              SOC2 TYPE II
-            </span>
-            <span className="footer-sec-pill">
-              <Gauge size={12} />
-              &lt;15s ENGINE
-            </span>
-            <span className="footer-sec-pill">
-              <Globe size={12} />
-              85+ COUNTRIES
-            </span>
-          </div>
         </div>
 
-        {/* Product Column */}
+        {/* Quick links */}
         <div className="footer-links-col">
-          <h4 className="footer-column-heading">PRODUCT</h4>
+          <h4 className="footer-column-heading">QUICK LINKS</h4>
           <ul className="footer-link-list">
-            <li><a href="/plan">Route Synthesizer</a></li>
-            <li><a href="/plan">Multi-Modal Flights</a></li>
-            <li><a href="/plan">Bespoke Lodging Matrix</a></li>
-            <li><a href="/plan">Autonomous Booking</a></li>
-            <li><a href="/plan">Telemetry API</a></li>
+            {QUICK_LINKS.map((item) => (
+              <li key={item.label}>
+                <Link to={item.to}>{item.label}</Link>
+              </li>
+            ))}
           </ul>
         </div>
 
-        {/* Company Column */}
+        {/* Connect with me */}
         <div className="footer-links-col">
-          <h4 className="footer-column-heading">COMPANY</h4>
-          <ul className="footer-link-list">
-            <li><a href="#blog">Engineering Blog</a></li>
-            <li><a href="#research">Research &amp; Benchmarks</a></li>
-            <li><a href="#wayfinding">Global Wayfinding</a></li>
-            <li><a href="#press">Press Kit</a></li>
-            <li>
-              <a href="#careers" className="careers-link">
-                Careers
-                <span className="hiring-badge">WE&apos;RE HIRING</span>
-              </a>
-            </li>
+          <h4 className="footer-column-heading">CONNECT WITH ME</h4>
+          <ul className="footer-connect-list">
+            {CONNECT_LINKS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.label}>
+                  <a
+                    href={item.href}
+                    className="footer-connect-item"
+                    {...(item.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+                  >
+                    <Icon size={15} />
+                    {item.label}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </div>
 
-        {/* Stay Synchronized Column */}
+        {/* Get in touch */}
         <div className="footer-newsletter-col">
-          <h4 className="footer-column-heading">STAY SYNCHRONIZED</h4>
+          <h4 className="footer-column-heading">GET IN TOUCH</h4>
           <p className="footer-description">
-            Receive weekly telemetry updates and algorithmic destination drops.
+            Have a project in mind or want to collaborate on AI tools? Let&apos;s connect.
           </p>
-          {subscribed ? (
-            <div className="footer-subscribed-msg">
-              ✓ Subscribed! Watch your inbox for telemetry drops.
-            </div>
-          ) : (
-            <form onSubmit={handleSubscribe} className="footer-newsletter-box">
-              <input
-                type="email"
-                required
-                placeholder="Enter your terminal email..."
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <button type="submit">Join</button>
-            </form>
-          )}
+          <a href={CONTACT_URL} className="footer-contact-btn">Contact Me</a>
         </div>
       </div>
 
       <div className="footer-bottom-bar">
-        <span>© 2026 TravelAI Systems Inc. All rights reserved.</span>
+        <span>© 2026 TravelAI. All rights reserved.</span>
         <div className="footer-legal-links">
+          <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub Repository</a>
+          <span className="legal-dot">•</span>
           <a href="#privacy">Privacy Policy</a>
           <span className="legal-dot">•</span>
           <a href="#terms">Terms of Service</a>
-          <span className="legal-dot">•</span>
-          <a href="#security">Security Architecture</a>
         </div>
       </div>
     </footer>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle, ArrowRight, Check } from 'lucide-react';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 
@@ -14,7 +15,15 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
 
   const { register, login } = useAuth();
+  const { addNotification } = useNotifications();
   const navigate = useNavigate();
+
+  const notifyAuth = (data, title, message) => {
+    addNotification(
+      { type: 'auth', title, message },
+      data.user?._id || data.user?.email
+    );
+  };
 
   const pwLen = password.length;
   const pwStrength = pwLen === 0 ? 0 : pwLen < 6 ? 1 : pwLen < 10 ? 2 : 3;
@@ -32,7 +41,8 @@ const RegisterPage = () => {
 
     setLoading(true);
     try {
-      await register(name, email, password);
+      const data = await register(name, email, password);
+      notifyAuth(data, 'Account created', `Welcome to TravelAI, ${data.user?.name || name || 'traveler'}!`);
       navigate('/my-trips');
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -45,7 +55,8 @@ const RegisterPage = () => {
     setError('');
     setLoading(true);
     try {
-      await login('traveler@example.com', 'traveler123');
+      const data = await login('traveler@example.com', 'traveler123');
+      notifyAuth(data, 'Logged in successfully', `Welcome back, ${data.user?.name || 'traveler'}`);
       navigate('/my-trips');
     } catch {
       setError('Demo login failed. Please sign up for a new account.');

@@ -221,6 +221,149 @@ Return ONLY raw JSON in this format:
   };
 };
 
+const CHAT_CURRENCY_SYMBOLS = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥', AED: 'AED ' };
+
+const formatChatMoney = (amount, currency) => {
+  const symbol = CHAT_CURRENCY_SYMBOLS[String(currency || '').toUpperCase()] || `${currency || ''} `;
+  return `${symbol}${Math.round(Number(amount) || 0).toLocaleString('en-IN')}`;
+};
+
+/* Ordered intent table — first match wins. Order avoids collisions
+   ("cheap sunset spot" must hit sunset, "food spots near my stay" → food). */
+const CHAT_INTENTS = [
+  { id: 'greeting', pattern: /^(hi|hii|hello|hey|namaste|good (morning|afternoon|evening))\b/ },
+  { id: 'thanks', pattern: /thank|thanks|thx|that helps|awesome|perfect/ },
+  { id: 'sunset', pattern: /sunset|sunrise|scenic|view|rooftop/ },
+  { id: 'food', pattern: /food|eat|restaurant|dinner|lunch|breakfast|cuisine|dining|cafe|street food|snack|hungry|meal/ },
+  { id: 'transport', pattern: /taxi|cab|uber|ola|auto|rickshaw|transport|metro|bus|train|flight|ride|shared|sharing|commute|baggage/ },
+  { id: 'budget', pattern: /budget|cheap|save|saving|cost|expens|afford|money|spend|trim|reduce/ },
+  { id: 'stay', pattern: /hotel|stay|hostel|resort|room|accommodation|check.?in|lodge/ },
+  { id: 'packing', pattern: /pack|bag|luggage|carry|clothes|wear|essentials/ },
+  { id: 'weather', pattern: /weather|climate|temperature|rain|monsoon|season|forecast/ },
+  { id: 'safety', pattern: /safe|safety|scam|caution|emergency/ },
+  { id: 'sightseeing', pattern: /attraction|sight|museum|fort|palace|temple|monument|landmark|visit|see the/ },
+  { id: 'itinerary', pattern: /itinerary|schedule|day \d|day plan|timeline|what.*(do|doing)/ },
+];
+
+/**
+ * Local concierge fallback when Gemini is unavailable. Answers from the real
+ * trip data (itinerary costs, saved POIs, budget breakdown) so chat stays
+ * genuinely useful instead of returning a canned template.
+ */
+const buildFallbackChatReply = ({ message, trip = {} }) => {
+  const query = String(message || '').toLowerCase();
+  const destination = trip.destination || 'your destination';
+  const shortDest = String(destination).split(',')[0].trim() || 'your destination';
+  const currency = trip.currency || 'INR';
+  const budget = Number(trip.budget) || 0;
+  const itinerary = Array.isArray(trip.itinerary) ? trip.itinerary : [];
+  const duration = Number(trip.duration) || itinerary.length || 3;
+  const travelers = Number(trip.travelers?.count) || 1;
+  const expenses = trip.expenses || {};
+  const hotels = (trip.hotels || []).slice(0, 3);
+  const restaurants = (trip.restaurants || []).slice(0, 4);
+  const places = (trip.places || []).slice(0, 5);
+  const preferences = trip.preferences || {};
+  const activities = itinerary.flatMap((day) => (day.activities || []).map((activity) => ({ ...activity, day: day.day })));
+
+  const money = (amount) => formatChatMoney(amount, currency);
+  const intent = (CHAT_INTENTS.find((entry) => entry.pattern.test(query)) || {}).id || 'general';
+
+  if (intent === 'greeting') {
+    return `Hello! 👋 I'm your TravelAI concierge for the ${duration}-day ${shortDest} trip.\n\nI work from your live plan — try:\n- 💰 "Make Day ${Math.min(2, duration)} cheaper" — I'll find the priciest activity to trim\n- 🍽️ "Best food near my stay" — top saved food spots\n- 🚕 "Split taxi with others?" — sharing math for ${travelers} traveler${travelers === 1 ? '' : 's'}\n\nWhat would you like to dig into?`;
+  }
+
+  if (intent === 'thanks') {
+    return `Anytime! 🙌 Your ${money(budget)} plan for ${shortDest} is looking solid. If you want, ask me to trim a day's activities, find cheaper food options, or suggest where to spend what's left.`;
+  }
+
+  if (intent === 'sunset') {
+    const scenic = activities.find((activity) => /sunset|sunrise|view|promenade|beach|cruise|hill|rooftop|lake/i.test(activity.title || ''));
+    if (scenic) {
+      return `Your best sunset option is already in the plan: **${scenic.title}** on Day ${scenic.day} around ${scenic.time}.\n- Arrive 30–40 minutes early for a good spot.\n- Keep evening transport flexible so you can stay past dusk.`;
+    }
+    if (places.length > 0) {
+      return `Closest scenic pick from your saved places in ${shortDest}: **${places[0].name}**${places[0].category ? ` (${places[0].category})` : ''}.\n\nYour itinerary has no fixed sunset stop yet — ask me to rework an evening and I'll slot it in.`;
+    }
+    return `For sunset in ${shortDest}, head to the nearest west-facing waterfront or elevated promenade — hotel rooftops are the safest bet for a quick plan. Check the exact sunset time locally, and be there ~40 minutes early.`;
+  }
+
+  if (intent === 'food') {
+    if (restaurants.length > 0) {
+      const lines = restaurants.map((r) => `- **${r.name}**${r.cuisine ? ` — ${r.cuisine}` : r.category ? ` — ${r.category}` : ''}${r.rating ? ` · ⭐ ${r.rating}` : ''}${r.priceEstimate && r.priceEstimate !== 'See listing' ? ` · ${r.priceEstimate}` : ''}`);
+      const nightDining = activities.find((activity) => /dinner|dining|restaurant|cafe/i.test(`${activity.title} ${activity.category}`));
+      return `Top food spots around ${shortDest} from your trip:\n${lines.join('\n')}\n\n${nightDining ? `Your plan's Day ${nightDining.day} dinner is at **${nightDining.locationName || nightDining.title}** (~${money(nightDining.estimatedCost)}).` : 'Prefer local flavor? Street-food lanes near the old market are usually the best value.'}\nWant me to swap any meal for a cheaper or higher-rated option?`;
+    }
+    return `No restaurants are saved in this plan yet. For ${shortDest}:\n- Target the oldest market lane for street food (best value + local flavor)\n- ${preferences.food?.length ? `Filter for your preference: ${preferences.food.join(', ')}.` : 'Ask the hotel desk for one "local favorite" that isn\'t on tourist lists.'}\n- Budget roughly ${money(Math.max(150, Math.round((budget * 0.15) / Math.max(1, duration))))} per day for food based on your plan.`;
+  }
+
+  if (intent === 'transport') {
+    const localTravel = Number(expenses.localTravel) || Math.round(budget * 0.1);
+    const perPerson = Math.round(localTravel / Math.max(1, travelers));
+    const tripLegNote = trip.distanceKm
+      ? `\n- Your ${Math.round(trip.distanceKm)} km journey from ${trip.origin?.name || 'your origin'} is already budgeted under transportation (${money(expenses.transportation || 0)}).`
+      : '';
+    return `Taxi-sharing math for ${shortDest}:\n- Local travel is budgeted at **${money(localTravel)}** for ${travelers} traveler${travelers === 1 ? '' : 's'} over ${duration} day${duration === 1 ? '' : 's'} → about **${money(perPerson)} per person**.\n- Splitting a cab in the ride-hailing apps' "share"/"pool" mode roughly halves the per-head fare vs solo rides.\n- For airport/station transfers, ask the hotel for their shared shuttle — usually the cheapest fixed rate.${tripLegNote}\n\nSharing rides for 2–3 legs a day typically frees up 5–8% of your budget for activities.`;
+  }
+
+  if (intent === 'budget') {
+    const plannedActivities = activities.reduce((sum, activity) => sum + (Number(activity.estimatedCost) || 0), 0);
+    const planned = Number(expenses.total) || plannedActivities;
+    const remaining = Number(expenses.remainingBudget);
+    const priciest = [...activities].sort((a, b) => (Number(b.estimatedCost) || 0) - (Number(a.estimatedCost) || 0)).slice(0, 2);
+    const trimLines = priciest
+      .filter((activity) => (Number(activity.estimatedCost) || 0) > 0)
+      .map((activity) => `- **${activity.title}** (Day ${activity.day}) ~${money(activity.estimatedCost)} — a shared/standard alternative often cuts ~40% (save ~${money(activity.estimatedCost * 0.4)}).`);
+    return `Budget snapshot for ${shortDest} (${duration} days, ${travelers} traveler${travelers === 1 ? '' : 's'}):\n- Planned spend: **${money(planned)}** of **${money(budget)}**${Number.isFinite(remaining) ? ` · remaining **${money(remaining)}**` : ''}\n${expenses.hotel ? `- Split: stay ${money(expenses.hotel)} · food ${money(expenses.food)} · activities ${money(expenses.activities)} · local travel ${money(expenses.localTravel)}` : ''}\n${trimLines.length ? `\nBiggest trims available:\n${trimLines.join('\n')}` : ''}\n\nTell me which day to focus on and I'll walk through cheaper alternatives.`;
+  }
+
+  if (intent === 'stay') {
+    if (hotels.length > 0) {
+      const lines = hotels.map((h) => `- **${h.name}**${h.priceEstimate && h.priceEstimate !== 'See listing' ? ` — ${h.priceEstimate}` : ''}${h.rating ? ` · ⭐ ${h.rating}` : ''}${h.address ? ` · ${h.address}` : ''}`);
+      return `Saved stays in ${shortDest}:\n${lines.join('\n')}\n\nTips: book with free cancellation where possible, and prefer properties within ~15 minutes of your Day 1 morning stop to cut daily commute. Ask me "make Day 1 cheaper" if the stay eats too much of the ${money(budget)} budget.`;
+    }
+    return `No hotels are saved in this plan yet. For ${shortDest}, pick a base within 15 minutes of the main attractions cluster to save on daily travel${preferences.accommodation?.length ? `, and filter for your preference: ${preferences.accommodation.join(', ')}` : ''}.`;
+  }
+
+  if (intent === 'packing') {
+    const activityPrefs = preferences.activities || [];
+    const extras = [
+      activityPrefs.some((p) => /beach|water/i.test(p)) ? 'swimwear + quick-dry towel' : null,
+      activityPrefs.some((p) => /nightlife|shopping/i.test(p)) ? 'one smart-casual outfit for evenings' : null,
+      activityPrefs.some((p) => /adventure|nature|trek/i.test(p)) ? 'sturdy walking shoes + a light daypack' : null,
+    ].filter(Boolean);
+    return `Packing essentials for ${duration} days in ${shortDest}:\n- ${Math.min(duration + 1, 8)} daily outfits + comfy walking shoes\n- Layers and a light rain shell — check the forecast a week before departure\n- Power bank, chargers, and travel adapter\n- Copies of ID/passport (digital + printed), basic meds, and a day bag for attractions${extras.length ? `\n- Based on your preferences: ${extras.join('; ')}` : ''}\n\nKeep valuables in a crossbody bag on market/attraction days.`;
+  }
+
+  if (intent === 'weather') {
+    return `I can't pull live forecasts inside chat, so check the ${shortDest} weekly forecast before you fly. Good news: your itinerary schedules outdoor sights in the mornings, which sidesteps most midday heat or rain.\n- Add a light rain layer regardless of season\n- Keep one indoor option (museum/market) per day as a backup\n- Re-check the forecast 2–3 days out and ask me to reshuffle a day if needed.`;
+  }
+
+  if (intent === 'safety') {
+    return `Quick safety checklist for ${shortDest}:\n- Use registered ride-hailing/radio taxis at night; avoid unmarked cabs\n- Keep a small wallet for the day, leave the rest in the hotel safe\n- Save your hotel's address card on your phone in the local language if possible\n- Share your day plan with someone at home${trip.startDate ? ` (you start ${trip.startDate})` : ''}\n- Use bottled/filtered water on street-food days\n\nEmergency numbers are usually pinned at hotel desks — screenshot them on arrival.`;
+  }
+
+  if (intent === 'sightseeing') {
+    const lines = places.length > 0
+      ? places.map((p) => `- **${p.name}**${p.category ? ` — ${p.category}` : ''}`)
+      : activities.slice(0, 5).map((a) => `- **${a.title}** — Day ${a.day}, ${a.time}`);
+    const firstActivity = activities.find((a) => a.day === 1);
+    return `Must-sees in your ${shortDest} plan:\n${lines.join('\n')}\n\n${firstActivity ? `Day 1 kicks off with **${firstActivity.title}** at ${firstActivity.time}.` : ''} Mornings are best for the headline sights — afternoons get crowded and hotter. Want me to reorder any day?`;
+  }
+
+  if (intent === 'itinerary') {
+    if (itinerary.length > 0) {
+      const lines = itinerary.slice(0, 7).map((day) => `- **Day ${day.day} — ${day.title}**: ${(day.activities || []).map((a) => a.title).join(' → ')}`);
+      return `Your ${duration}-day ${shortDest} plan at a glance:\n${lines.join('\n')}\n${itinerary.length > 7 ? `…plus ${itinerary.length - 7} more days in the itinerary tab.\n` : ''}\nAsk me to make any specific day cheaper, slower, or more local — or say "Day ${Math.min(2, duration)} plan" for the full timeline of that day.`;
+    }
+    return `Your plan for ${shortDest} covers ${duration} days on a ${money(budget)} budget. Ask me about any day's activities once the itinerary is generated — or say "best food near my stay" or "split taxi with others" for instant answers.`;
+  }
+
+  const priciest = [...activities].sort((a, b) => (Number(b.estimatedCost) || 0) - (Number(a.estimatedCost) || 0))[0];
+  const trimmed = String(message || '').slice(0, 60);
+  return `Got it — about "${trimmed}": I work from your live ${shortDest} plan, here's what I can act on right now:\n- 💰 "Make Day ${priciest?.day || Math.min(2, duration)} cheaper" — biggest single saving available${priciest ? ` (**${priciest.title}**, ${money(priciest.estimatedCost)})` : ''}\n- 🍽️ "Best food near my stay" — ${restaurants.length > 0 ? `${restaurants.length} saved food spots` : 'local dining picks'}\n- 🚕 "Split taxi with others?" — sharing math for ${travelers} traveler${travelers === 1 ? '' : 's'}\n- 🧳 "What to pack?" or 🏨 "Which hotel?" for quick essentials\n\nWhich of these should I dig into?`;
+};
+
 /**
  * Chat with AI travel assistant
  */
@@ -240,10 +383,11 @@ CONTEXT OF CURRENT TRIP:
 - Budget: ${trip?.budget || 1000} ${trip?.currency || 'USD'}
 - Travelers: ${trip?.travelers?.count || 1} (${trip?.travelers?.type || 'Solo'})
 - Main Itinerary Days: ${trip?.itinerary?.map((d) => `Day ${d.day}: ${d.title}`).join(' | ')}
+- Budget breakdown: ${JSON.stringify(trip?.expenses || {})}
 - Preferences: ${JSON.stringify(trip?.preferences || {})}
 
 RECENT CHAT HISTORY:
-${chatHistory.slice(-4).map((m) => `${m.role}: ${m.content}`).join('\n')}
+${(chatHistory || []).slice(-4).map((m) => `${m.role}: ${m.text || m.content || ''}`).join('\n')}
 
 USER QUESTION:
 "${message}"
@@ -258,14 +402,7 @@ Please provide a concise, engaging, and genuinely helpful response tailored to t
     }
   }
 
-  // Fallback chat assistant responses
-  const dest = trip?.destination || 'your destination';
-  return `I'm happy to help you with your trip to **${dest}**! 
-
-Based on your ${trip?.duration || 3}-day itinerary:
-- **Local Highlights**: Make sure to check out the recommended attractions during morning hours for fewer crowds.
-- **Budget Tip**: You're currently tracking well within your ${trip?.budget || 1000} ${trip?.currency || 'USD'} plan.
-- Feel free to ask me about restaurant recommendations, packing tips, or adjusting specific daily activities!`;
+  return buildFallbackChatReply({ message, trip });
 };
 
 /**

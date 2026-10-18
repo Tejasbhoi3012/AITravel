@@ -11,6 +11,8 @@ import authRoutes from './routes/authRoutes.js';
 import tripRoutes from './routes/tripRoutes.js';
 import placeRoutes from './routes/placeRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import currencyRoutes from './routes/currencyRoutes.js';
+import { refreshCurrencyRates } from './services/currencyService.js';
 
 // Load environment variables
 dotenv.config();
@@ -51,6 +53,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/places', placeRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/currency', currencyRoutes);
+
+// Warm up live exchange rates (non-blocking)
+refreshCurrencyRates();
 
 // Error Handling Middlewares
 app.use(notFound);

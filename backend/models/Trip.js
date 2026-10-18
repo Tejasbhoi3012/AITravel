@@ -71,6 +71,19 @@ const tripSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
+    origin: {
+      name: { type: String, default: '' },
+      latitude: { type: Number },
+      longitude: { type: Number },
+    },
+    distanceKm: {
+      type: Number,
+      default: 0,
+    },
+    transportMode: {
+      type: String,
+      default: '',
+    },
     travelers: {
       count: { type: Number, default: 1 },
       type: { type: String, default: 'Solo' }, // Solo, Couple, Family, Friends

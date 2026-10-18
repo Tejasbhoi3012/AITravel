@@ -1,8 +1,11 @@
-import { searchPlaces, getHotels, getRestaurants, getAttractions } from './googlePlacesService.js';
+import { searchPlaces, getNearbyPois } from './googlePlacesService.js';
 import { generateItineraryWithGemini } from './geminiService.js';
+import { estimateTravelCost } from './travelCostService.js';
 
 export const planFullTrip = async ({
   destination,
+  destinationDetails = null,
+  origin = null,
   travelers = { count: 1, type: 'Solo' },
   startDate = '',
   endDate = '',
@@ -12,29 +15,41 @@ export const planFullTrip = async ({
   preferences = { accommodation: [], food: [], activities: [] },
   userId = null,
 }) => {
-  // 1. Resolve destination coords & details
-  const destinationQuery = typeof destination === 'string' ? destination : destination.name || 'Goa';
-  const placeResults = await searchPlaces(destinationQuery);
-  const selectedPlace = placeResults[0] || {
-    name: destinationQuery,
-    country: 'International',
-    latitude: 15.2993,
-    longitude: 74.124,
-    placeId: 'default_place',
-  };
+  // 1. Resolve destination coords & details (prefer the user-selected place)
+  const destinationQuery = typeof destination === 'string' ? destination : destination.name || 'Destination';
+  const destDetails = destinationDetails || (typeof destination === 'object' ? destination : null);
+  const hasDetails =
+    destDetails &&
+    Number.isFinite(Number(destDetails.latitude)) &&
+    Number.isFinite(Number(destDetails.longitude));
 
-  const latitude = typeof destination === 'object' && destination.latitude ? destination.latitude : selectedPlace.latitude;
-  const longitude = typeof destination === 'object' && destination.longitude ? destination.longitude : selectedPlace.longitude;
-  const placeId = typeof destination === 'object' && destination.placeId ? destination.placeId : selectedPlace.placeId;
-  const destName = typeof destination === 'object' && destination.name ? destination.name : selectedPlace.name;
-  const country = typeof destination === 'object' && destination.country ? destination.country : selectedPlace.country || '';
+  let selectedPlace = null;
+  if (!hasDetails) {
+    const placeResults = await searchPlaces(destinationQuery);
+    selectedPlace = placeResults[0] || null;
+  }
 
-  // 2. Fetch real places, hotels, and restaurants around this location
-  const [realHotels, realRestaurants, realPlaces] = await Promise.all([
-    getHotels(latitude, longitude, destName),
-    getRestaurants(latitude, longitude, destName),
-    getAttractions(latitude, longitude, destName),
-  ]);
+  // Only treat coords as usable when they are real (non-zero); never silently
+  // substitute unrelated default coordinates — POIs must belong to the search.
+  const rawLat = hasDetails ? Number(destDetails.latitude) : Number(selectedPlace?.latitude);
+  const rawLng = hasDetails ? Number(destDetails.longitude) : Number(selectedPlace?.longitude);
+  const hasCoords = Number.isFinite(rawLat) && Number.isFinite(rawLng) && (rawLat !== 0 || rawLng !== 0);
+  const latitude = hasCoords ? rawLat : 0;
+  const longitude = hasCoords ? rawLng : 0;
+  const placeId = (destDetails && destDetails.placeId) || selectedPlace?.placeId || '';
+  const destName =
+    (typeof destination === 'object' && destination?.name) ||
+    destDetails?.name ||
+    selectedPlace?.name ||
+    destinationQuery;
+  const country = destDetails?.country || selectedPlace?.country || '';
+
+  // 2. Fetch real hotels, restaurants, and attractions in one pass — only
+  // when the destination was geocoded, so sections never show unrelated data.
+  const pois = hasCoords
+    ? await getNearbyPois(latitude, longitude, destName)
+    : { hotels: [], restaurants: [], places: [] };
+  const { hotels: realHotels, restaurants: realRestaurants, places: realPlaces } = pois;
 
   // 3. Generate structured itinerary using Gemini AI with real places injected
   const aiResult = await generateItineraryWithGemini({
@@ -49,9 +64,19 @@ export const planFullTrip = async ({
     realRestaurants,
   });
 
-  // 4. Calculate accurate expense metrics
+  // 4. Calculate accurate expense metrics (distance-based transit when origin is known)
+  const count = Number(travelers.count) || 1;
+  const travelEstimate = estimateTravelCost({
+    origin,
+    destination: { latitude, longitude },
+    travelers: count,
+    currency,
+  });
+
   const rawExpenses = aiResult.expenses || {};
-  const transportation = Number(rawExpenses.transportation) || Math.round(budget * 0.22);
+  const transportation = travelEstimate
+    ? travelEstimate.total
+    : Number(rawExpenses.transportation) || Math.round(budget * 0.22);
   const hotel = Number(rawExpenses.hotel) || Math.round(budget * 0.35);
   const food = Number(rawExpenses.food) || Math.round(budget * 0.20);
   const activities = Number(rawExpenses.activities) || Math.round(budget * 0.12);
@@ -59,7 +84,6 @@ export const planFullTrip = async ({
   const miscellaneous = Number(rawExpenses.miscellaneous) || Math.round(budget * 0.05);
 
   const total = transportation + hotel + food + activities + localTravel + miscellaneous;
-  const count = Number(travelers.count) || 1;
   const costPerPerson = Math.round(total / count);
   const remainingBudget = Number(budget) - total;
 
@@ -83,6 +107,15 @@ export const planFullTrip = async ({
     placeId,
     latitude,
     longitude,
+    origin: travelEstimate
+      ? {
+          name: origin?.name || 'Current Location',
+          latitude: Number(origin.latitude),
+          longitude: Number(origin.longitude),
+        }
+      : undefined,
+    distanceKm: travelEstimate ? travelEstimate.distanceKm : 0,
+    transportMode: travelEstimate ? travelEstimate.mode : '',
     travelers: {
       count,
       type: travelers.type || 'Travelers',

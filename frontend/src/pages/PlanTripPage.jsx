@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrip } from '../context/TripContext';
+import { reverseGeocode, estimateTravel } from '../services/placesService';
+import { getCurrencyRates, convertAmount, CURRENCY_SYMBOLS } from '../services/currencyService';
 import {
-  MapPin,
   ArrowRight,
   Check,
   X,
@@ -11,8 +12,113 @@ import {
   ShieldCheck,
   Sparkles,
   ChevronRight,
+  Crosshair,
+  Loader2,
 } from 'lucide-react';
+import DestinationAutosuggest from '../components/DestinationAutosuggest';
 import AIChatDrawer from '../components/AIChatDrawer';
+
+// Static planner configuration — hoisted to module scope so the page doesn't
+// rebuild it on every keystroke/re-render.
+const TRENDING_NODES = ['Goa, India', 'Bali, Indonesia', 'Dubai, UAE', 'Tokyo, Japan', 'Reykjavik, Iceland'];
+
+const STEPS_LIST = [
+  { num: 1, label: 'Destination' },
+  { num: 2, label: 'Travelers' },
+  { num: 3, label: 'Dates & Pacing' },
+  { num: 4, label: 'Preferences' },
+  { num: 5, label: 'Budget & Stays' },
+  { num: 6, label: 'Review & Synthesize' },
+];
+
+// Destination Metadata database for rich preview card
+const destinationData = {
+  'Goa, India': {
+    name: 'Goa, India — Coastal Breeze & Portuguese Heritage',
+    short: 'Goa, India',
+    badge: 'TOP PICK • TROPICAL',
+    sector: 'SECTOR ID: GOA-IND-G4',
+    overlayLeft: 'PANJIM LATIN QUARTER & MORJIM SHORELINE',
+    overlayRight: 'GEO: 15.4989° N, 73.8278° E',
+    desc: 'Pristine southern coves, heritage Latin quarters in Panjim, vibrant beach shacks, and vibrant night markets with Portuguese architectural influence.',
+    flight: '1h 20m from BOM',
+    vibe: 'Relaxed & Culinary',
+    safety: '98% Traveler Verified',
+    climate: 'Tropical Microclimate • 28°C Sunny • Ideal Beach & Scooter Season',
+    climateSub: 'Barometric stability: 1013 hPa // UV Index: 7 (Peak 11:30 - 15:00)',
+    hint: 'Coordinates match Goa coastal quadrant (North Baga to South Palolem).',
+    iata: 'IATA: GOI / GOX',
+    img: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80',
+  },
+  'Mumbai, India': {
+    name: 'Mumbai, India — Heritage & High Energy',
+    short: 'Mumbai, India',
+    badge: 'TOP PICK • METRO',
+    sector: 'SECTOR ID: MUM-IND-G1',
+    overlayLeft: 'GATEWAY & MARINE DRIVE SHORELINE',
+    overlayRight: 'GEO: 19.0760° N, 72.8777° E',
+    desc: 'City of dreams with colonial architecture, high-energy street food, iconic sea links, and vibrant Bollywood culture.',
+    flight: 'Direct Global Hub',
+    vibe: 'High Energy & Heritage',
+    safety: '96% Traveler Verified',
+    climate: 'Coastal Warm • 30°C Clear • Pleasant Evening Breezes',
+    climateSub: 'Barometric stability: 1010 hPa // UV Index: 6 (Peak 12:00 - 15:00)',
+    hint: 'Coordinates match Mumbai metro quadrant (Colaba to Bandra).',
+    iata: 'IATA: BOM',
+    img: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1200&q=80',
+  },
+  'Dubai, UAE': {
+    name: 'Dubai, UAE — Glamour & Desert Adventure',
+    short: 'Dubai, UAE',
+    badge: 'TOP PICK • LUXURY',
+    sector: 'SECTOR ID: DXB-UAE-G2',
+    overlayLeft: 'MARINA SKYLINE & DESERT DUNES',
+    overlayRight: 'GEO: 25.2048° N, 55.2708° E',
+    desc: 'Hyper-futuristic skyline, pristine desert safaris, Michelin dining, world-class theme parks, and architectural marvels.',
+    flight: '3h 30m • Direct',
+    vibe: 'Glamour & Adventure',
+    safety: '99% Traveler Verified',
+    climate: 'Desert Warm • 26°C Clear • Cool Nights',
+    climateSub: 'Barometric stability: 1015 hPa // UV Index: 5 (Peak 12:00 - 14:00)',
+    hint: 'Coordinates match Dubai metro quadrant (Marina to Old Dubai).',
+    iata: 'IATA: DXB',
+    img: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=1200&q=80',
+  },
+  'Bali, Indonesia': {
+    name: 'Bali, Indonesia — Spiritual & Tropical',
+    short: 'Bali, Indonesia',
+    badge: 'TOP PICK • ISLAND',
+    sector: 'SECTOR ID: BALI-ID-G3',
+    overlayLeft: 'UBUD TERRACES & ULUWATU CLIFFS',
+    overlayRight: 'GEO: 8.3405° S, 115.0920° E',
+    desc: 'Sacred water temples, emerald rice terraces in Ubud, vibrant beach clubs in Seminyak, and volcanic hiking trails.',
+    flight: '5h 45m • 1 Stop',
+    vibe: 'Spiritual & Tropical',
+    safety: '97% Traveler Verified',
+    climate: 'Equatorial Tropics • 29°C Lush • Light Breeze',
+    climateSub: 'Barometric stability: 1011 hPa // UV Index: 8 (Peak 11:00 - 14:00)',
+    hint: 'Coordinates match Bali island quadrant (Ubud to Uluwatu).',
+    iata: 'IATA: DPS',
+    img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80',
+  },
+  'Tokyo, Japan': {
+    name: 'Tokyo, Japan — Electric & Immersive',
+    short: 'Tokyo, Japan',
+    badge: 'TOP PICK • HERITAGE',
+    sector: 'SECTOR ID: TYO-JP-G5',
+    overlayLeft: 'SHIBUYA CROSSING & ASAKUSA SHRINES',
+    overlayRight: 'GEO: 35.6762° N, 139.6503° E',
+    desc: 'Neon-lit Shibuya crossings, historic Asakusa shrines, Michelin ramen alleys, bullet trains, and world-class hospitality.',
+    flight: '7h 15m • Direct',
+    vibe: 'Electric & Immersive',
+    safety: '99% Traveler Verified',
+    climate: 'Temperate Crisp • 18°C Clear • Moderate Season',
+    climateSub: 'Barometric stability: 1016 hPa // UV Index: 3 (Peak 11:00 - 13:00)',
+    hint: 'Coordinates match Tokyo metro quadrant (Shibuya to Asakusa).',
+    iata: 'IATA: HND / NRT',
+    img: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80',
+  },
+};
 
 const PlanTripPage = () => {
   const navigate = useNavigate();
@@ -20,111 +126,187 @@ const PlanTripPage = () => {
 
   const [step, setStep] = useState(1);
   const [destinationInput, setDestinationInput] = useState(plannerState.destination || 'Goa, India');
-  const [selectedDestKey, setSelectedDestKey] = useState('Goa, India');
+  const [selectedDestKey, setSelectedDestKey] = useState(plannerState.destination || 'Goa, India');
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [multiCity, setMultiCity] = useState(false);
+  const [originInput, setOriginInput] = useState(plannerState.origin?.name || '');
+  const [isLocating, setIsLocating] = useState(false);
+  const [geoError, setGeoError] = useState('');
+  const [travelEstimate, setTravelEstimate] = useState(null);
+  const [fxRates, setFxRates] = useState(null);
 
-  // Destination Metadata database for rich preview card
-  const destinationData = {
-    'Goa, India': {
-      name: 'Goa, India — Coastal Breeze & Portuguese Heritage',
-      short: 'Goa, India',
-      badge: 'TOP PICK • TROPICAL',
-      sector: 'SECTOR ID: GOA-IND-G4',
-      overlayLeft: 'PANJIM LATIN QUARTER & MORJIM SHORELINE',
-      overlayRight: 'GEO: 15.4989° N, 73.8278° E',
-      desc: 'Pristine southern coves, heritage Latin quarters in Panjim, vibrant beach shacks, and vibrant night markets with Portuguese architectural influence.',
-      flight: '1h 20m from BOM',
-      vibe: 'Relaxed & Culinary',
-      safety: '98% Traveler Verified',
-      climate: 'Tropical Microclimate • 28°C Sunny • Ideal Beach & Scooter Season',
-      climateSub: 'Barometric stability: 1013 hPa // UV Index: 7 (Peak 11:30 - 15:00)',
-      hint: 'Coordinates match Goa coastal quadrant (North Baga to South Palolem).',
-      iata: 'IATA: GOI / GOX',
-      img: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80',
-    },
-    'Mumbai, India': {
-      name: 'Mumbai, India — Heritage & High Energy',
-      short: 'Mumbai, India',
-      badge: 'TOP PICK • METRO',
-      sector: 'SECTOR ID: MUM-IND-G1',
-      overlayLeft: 'GATEWAY & MARINE DRIVE SHORELINE',
-      overlayRight: 'GEO: 19.0760° N, 72.8777° E',
-      desc: 'City of dreams with colonial architecture, high-energy street food, iconic sea links, and vibrant Bollywood culture.',
-      flight: 'Direct Global Hub',
-      vibe: 'High Energy & Heritage',
-      safety: '96% Traveler Verified',
-      climate: 'Coastal Warm • 30°C Clear • Pleasant Evening Breezes',
-      climateSub: 'Barometric stability: 1010 hPa // UV Index: 6 (Peak 12:00 - 15:00)',
-      hint: 'Coordinates match Mumbai metro quadrant (Colaba to Bandra).',
-      iata: 'IATA: BOM',
-      img: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1200&q=80',
-    },
-    'Dubai, UAE': {
-      name: 'Dubai, UAE — Glamour & Desert Adventure',
-      short: 'Dubai, UAE',
-      badge: 'TOP PICK • LUXURY',
-      sector: 'SECTOR ID: DXB-UAE-G2',
-      overlayLeft: 'MARINA SKYLINE & DESERT DUNES',
-      overlayRight: 'GEO: 25.2048° N, 55.2708° E',
-      desc: 'Hyper-futuristic skyline, pristine desert safaris, Michelin dining, world-class theme parks, and architectural marvels.',
-      flight: '3h 30m • Direct',
-      vibe: 'Glamour & Adventure',
-      safety: '99% Traveler Verified',
-      climate: 'Desert Warm • 26°C Clear • Cool Nights',
-      climateSub: 'Barometric stability: 1015 hPa // UV Index: 5 (Peak 12:00 - 14:00)',
-      hint: 'Coordinates match Dubai metro quadrant (Marina to Old Dubai).',
-      iata: 'IATA: DXB',
-      img: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=1200&q=80',
-    },
-    'Bali, Indonesia': {
-      name: 'Bali, Indonesia — Spiritual & Tropical',
-      short: 'Bali, Indonesia',
-      badge: 'TOP PICK • ISLAND',
-      sector: 'SECTOR ID: BALI-ID-G3',
-      overlayLeft: 'UBUD TERRACES & ULUWATU CLIFFS',
-      overlayRight: 'GEO: 8.3405° S, 115.0920° E',
-      desc: 'Sacred water temples, emerald rice terraces in Ubud, vibrant beach clubs in Seminyak, and volcanic hiking trails.',
-      flight: '5h 45m • 1 Stop',
-      vibe: 'Spiritual & Tropical',
+  useEffect(() => {
+    let cancelled = false;
+    getCurrencyRates()
+      .then((data) => {
+        if (!cancelled) setFxRates(data.rates);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Preview for any destination that isn't in the curated showcase set —
+  // derived from live geocoded selection instead of a fixed card.
+  const buildGenericPreview = () => {
+    const details = plannerState.destinationDetails;
+    const label = details
+      ? (details.country ? `${details.name}, ${details.country}` : details.name)
+      : destinationInput.trim();
+    const short = label || 'Custom Destination';
+    const geo = details
+      ? `GEO: ${Number(details.latitude).toFixed(4)}° , ${Number(details.longitude).toFixed(4)}°`
+      : 'GEO: RESOLVING FROM SEARCH';
+    const sectorId = short.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 18) || 'CUSTOM-NODE';
+    return {
+      name: `${short} — Custom Synthesis Route`,
+      short,
+      badge: 'CUSTOM NODE • LIVE GEOCODE',
+      sector: `SECTOR ID: ${sectorId}`,
+      overlayLeft: 'LIVE GEO-INDEXED QUADRANT',
+      overlayRight: geo,
+      desc: `Live-indexed destination resolved through geospatial search. Hotels, dining, and attractions will be synthesized from real local listings around ${short}.`,
+      flight: 'Computed on synthesis',
+      vibe: 'Custom & Adaptive',
       safety: '97% Traveler Verified',
-      climate: 'Equatorial Tropics • 29°C Lush • Light Breeze',
-      climateSub: 'Barometric stability: 1011 hPa // UV Index: 8 (Peak 11:00 - 14:00)',
-      hint: 'Coordinates match Bali island quadrant (Ubud to Uluwatu).',
-      iata: 'IATA: DPS',
-      img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80',
-    },
-    'Tokyo, Japan': {
-      name: 'Tokyo, Japan — Electric & Immersive',
-      short: 'Tokyo, Japan',
-      badge: 'TOP PICK • HERITAGE',
-      sector: 'SECTOR ID: TYO-JP-G5',
-      overlayLeft: 'SHIBUYA CROSSING & ASAKUSA SHRINES',
-      overlayRight: 'GEO: 35.6762° N, 139.6503° E',
-      desc: 'Neon-lit Shibuya crossings, historic Asakusa shrines, Michelin ramen alleys, bullet trains, and world-class hospitality.',
-      flight: '7h 15m • Direct',
-      vibe: 'Electric & Immersive',
-      safety: '99% Traveler Verified',
-      climate: 'Temperate Crisp • 18°C Clear • Moderate Season',
-      climateSub: 'Barometric stability: 1016 hPa // UV Index: 3 (Peak 11:00 - 13:00)',
-      hint: 'Coordinates match Tokyo metro quadrant (Shibuya to Asakusa).',
-      iata: 'IATA: HND / NRT',
-      img: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80',
-    },
+      climate: `Live Region Telemetry • ${short}`,
+      climateSub: 'Full climate stack resolves from destination coordinates during synthesis.',
+      hint: details
+        ? `Coordinates locked to ${short} (${Number(details.latitude).toFixed(2)}, ${Number(details.longitude).toFixed(2)}).`
+        : `Type and pick a suggestion to lock coordinates for ${short}.`,
+      iata: 'IATA: AUTO',
+      img: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80',
+    };
   };
 
-  const currentPreview = destinationData[selectedDestKey] || destinationData['Goa, India'];
-  const trendingNodes = ['Goa, India', 'Bali, Indonesia', 'Dubai, UAE', 'Tokyo, Japan', 'Reykjavik, Iceland'];
+  const currentPreview = destinationData[selectedDestKey]
+    || (selectedDestKey.trim() ? buildGenericPreview() : destinationData['Goa, India']);
 
   const handleSelectTrending = (dest) => {
-    if (destinationData[dest]) {
-      setSelectedDestKey(dest);
-      setDestinationInput(dest);
-      updatePlannerField('destination', dest);
-    } else {
-      setDestinationInput(dest);
-      updatePlannerField('destination', dest);
+    setTravelEstimate(null);
+    updatePlannerField('destinationDetails', null);
+    setSelectedDestKey(dest);
+    setDestinationInput(dest);
+    updatePlannerField('destination', dest);
+  };
+
+  const handleDestinationChange = (value) => {
+    setTravelEstimate(null);
+    setDestinationInput(value);
+    setSelectedDestKey(value);
+    updatePlannerField('destination', value);
+    updatePlannerField('destinationDetails', null);
+  };
+
+  const handleClearDestination = () => {
+    setTravelEstimate(null);
+    setDestinationInput('');
+    setSelectedDestKey('');
+    updatePlannerField('destination', '');
+    updatePlannerField('destinationDetails', null);
+  };
+
+  const handleSelectSuggestion = (place) => {
+    const label = place.country ? `${place.name}, ${place.country}` : place.name;
+    setDestinationInput(label);
+    setSelectedDestKey(label);
+    updatePlannerField('destination', label);
+    updatePlannerField('destinationDetails', {
+      name: place.name,
+      country: place.country,
+      placeId: place.placeId,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    });
+    refreshTravelEstimate(null, { latitude: place.latitude, longitude: place.longitude });
+  };
+
+  const currencySymbols = CURRENCY_SYMBOLS;
+  const formatEstimate = (amount) =>
+    `${currencySymbols[plannerState.currency] || ''}${Number(amount || 0).toLocaleString('en-IN')}`;
+
+  // Switch the budget into the picked currency using current exchange rates —
+  // the amount carries over (₹50,000 → $526), so the value stays meaningful.
+  const handleCurrencyChange = (code) => {
+    if (code === plannerState.currency) return;
+    const converted = fxRates
+      ? convertAmount(plannerState.budget, plannerState.currency, code, fxRates)
+      : plannerState.budget;
+    updatePlannerField('currency', code);
+    updatePlannerField('budget', converted);
+  };
+
+  const refreshTravelEstimate = (originOverride, destOverride) => {
+    const origin = originOverride || plannerState.origin;
+    const dest = destOverride || plannerState.destinationDetails;
+    if (!origin?.latitude || !dest?.latitude) {
+      setTravelEstimate(null);
+      return;
     }
+    estimateTravel({
+      fromLat: origin.latitude,
+      fromLng: origin.longitude,
+      toLat: dest.latitude,
+      toLng: dest.longitude,
+      travelers: plannerState.travelers?.count || 1,
+      currency: plannerState.currency || 'INR',
+    })
+      .then((data) => setTravelEstimate(data.success ? data.estimate : null))
+      .catch(() => setTravelEstimate(null));
+  };
+
+  const handleOriginChange = (value) => {
+    setOriginInput(value);
+    setGeoError('');
+    setTravelEstimate(null);
+    updatePlannerField('origin', null);
+  };
+
+  const handleSelectOriginSuggestion = (place) => {
+    const label = place.country ? `${place.name}, ${place.country}` : place.name;
+    const origin = { name: label, latitude: place.latitude, longitude: place.longitude };
+    setOriginInput(label);
+    setGeoError('');
+    updatePlannerField('origin', origin);
+    refreshTravelEstimate(origin, null);
+  };
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoError('Geolocation is not supported by this browser.');
+      return;
+    }
+    setIsLocating(true);
+    setGeoError('');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        let label = 'Current Location';
+        try {
+          const data = await reverseGeocode(latitude, longitude);
+          const place = data.place || {};
+          if (place.name) label = place.country ? `${place.name}, ${place.country}` : place.name;
+        } catch {
+          label = 'Current Location';
+        }
+        const origin = { name: label, latitude, longitude };
+        setOriginInput(label);
+        setIsLocating(false);
+        updatePlannerField('origin', origin);
+        refreshTravelEstimate(origin, null);
+      },
+      (error) => {
+        setIsLocating(false);
+        setGeoError(
+          error.code === error.PERMISSION_DENIED
+            ? 'Location permission denied — type your departure city instead.'
+            : 'Could not detect your location — type your departure city instead.'
+        );
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
+    );
   };
 
   const handleNextStep = () => {
@@ -135,15 +317,6 @@ const PlanTripPage = () => {
     }
   };
 
-  const stepsList = [
-    { num: 1, label: 'Destination' },
-    { num: 2, label: 'Travelers' },
-    { num: 3, label: 'Dates & Pacing' },
-    { num: 4, label: 'Preferences' },
-    { num: 5, label: 'Budget & Stays' },
-    { num: 6, label: 'Review & Synthesize' },
-  ];
-
   const synthesisPct = step * 16;
   const pendingParams = 6 - step;
 
@@ -152,7 +325,11 @@ const PlanTripPage = () => {
       {/* Top badge row */}
       <div className="plan-v2-toprow">
         <span className="plan-v2-autonomous">● AUTONOMOUS PLANNER V4.2</span>
-        <span className="plan-v2-sysloc">SYS.LOC // LAT-15.2993-LNG-74.1240</span>
+        <span className="plan-v2-sysloc">
+          SYS.LOC // {plannerState.destinationDetails
+            ? `LAT-${Number(plannerState.destinationDetails.latitude).toFixed(4)}-LNG-${Number(plannerState.destinationDetails.longitude).toFixed(4)}`
+            : 'AWAITING-GEOCODE'}
+        </span>
       </div>
 
       <div className="plan-header-row">
@@ -175,7 +352,7 @@ const PlanTripPage = () => {
 
       {/* Stepper */}
       <div className="stepper-pill-bar">
-        {stepsList.map((s, idx) => (
+        {STEPS_LIST.map((s, idx) => (
           <div key={s.num} className="stepper-step-wrap">
             <div
               className={`stepper-pill-item ${step === s.num ? 'active' : ''} ${step > s.num ? 'done' : ''}`}
@@ -186,7 +363,7 @@ const PlanTripPage = () => {
               </div>
               <span>{s.num === 1 ? '1. ' : ''}{s.label}</span>
             </div>
-            {idx < stepsList.length - 1 && <span className="stepper-line" />}
+            {idx < STEPS_LIST.length - 1 && <span className="stepper-line" />}
           </div>
         ))}
       </div>
@@ -205,20 +382,21 @@ const PlanTripPage = () => {
               <span className="plan-v2-fieldlabel">Primary Anchor Destination</span>
               <span className="plan-v2-iata mono">{currentPreview.iata}</span>
             </div>
-            <div className="plan-v2-destbox">
-              <MapPin size={17} color="#3f3f46" />
-              <input
-                type="text"
-                value={destinationInput}
-                onChange={(e) => {
-                  setDestinationInput(e.target.value);
-                  updatePlannerField('destination', e.target.value);
-                }}
-                placeholder="Goa, India"
-              />
-              <X size={15} color="#a1a1aa" style={{ cursor: 'pointer' }} onClick={() => setDestinationInput('')} />
-              <span className="confirmed-badge">CONFIRMED</span>
-            </div>
+            <DestinationAutosuggest
+              value={destinationInput}
+              onChange={handleDestinationChange}
+              onSelect={handleSelectSuggestion}
+              placeholder="Goa, India"
+              iconSize={17}
+              wrapClass="plan-v2-destbox-wrap"
+              boxClass="plan-v2-destbox"
+              renderRight={
+                <>
+                  <X size={15} color="#a1a1aa" style={{ cursor: 'pointer' }} onClick={handleClearDestination} />
+                  <span className="confirmed-badge">CONFIRMED</span>
+                </>
+              }
+            />
 
             <div className="plan-v2-hint mono">
               <span className="hint-label">HINT:</span>
@@ -226,11 +404,38 @@ const PlanTripPage = () => {
             </div>
 
             <div className="plan-v2-fieldrow" style={{ marginTop: 18 }}>
+              <span className="plan-v2-fieldlabel">Departing From</span>
+              <button type="button" className="btn-use-location" onClick={handleUseMyLocation} disabled={isLocating}>
+                {isLocating ? <Loader2 size={12} className="dest-spin" /> : <Crosshair size={12} />}
+                <span>{isLocating ? 'LOCATING…' : 'USE MY LOCATION'}</span>
+              </button>
+            </div>
+            <DestinationAutosuggest
+              value={originInput}
+              onChange={handleOriginChange}
+              onSelect={handleSelectOriginSuggestion}
+              placeholder="Your departure city (e.g., Mumbai, India)"
+              iconSize={17}
+              wrapClass="plan-v2-destbox-wrap"
+              boxClass="plan-v2-destbox"
+            />
+            {geoError && <div className="geo-error-note mono">⚠ {geoError}</div>}
+            {travelEstimate && (
+              <div className="transit-estimate-chip mono">
+                <span className="transit-chip-label">TRANSIT</span>
+                <span>◔ {travelEstimate.distanceKm} KM</span>
+                <span>• {travelEstimate.mode.toUpperCase()}</span>
+                <span>• ≈ {formatEstimate(travelEstimate.costPerPerson)}/person</span>
+                <span>• TOTAL ≈ {formatEstimate(travelEstimate.total)}</span>
+              </div>
+            )}
+
+            <div className="plan-v2-fieldrow" style={{ marginTop: 18 }}>
               <span className="plan-v2-fieldlabel">ALGORITHMIC TRENDING NODES</span>
               <span className="live-volume mono"><span className="green-dot" /> LIVE VOLUME</span>
             </div>
             <div className="trending-dest-row plan-v2-chips">
-              {trendingNodes.map((t) => (
+              {TRENDING_NODES.map((t) => (
                 <button
                   key={t}
                   className={`trending-chip-pill ${destinationInput === t ? 'active' : ''}`}
@@ -254,7 +459,7 @@ const PlanTripPage = () => {
 
             <label className="multicity-row">
               <input type="checkbox" checked={multiCity} onChange={(e) => setMultiCity(e.target.checked)} />
-              <span>Synthesize multi-city loop (e.g., North Goa Coast + Old Portuguese Latin Quarters)</span>
+              <span>Synthesize multi-city loop (e.g., Old Town Heritage District + Coastal Quarter)</span>
             </label>
 
             <div className="plan-v2-formfoot">
@@ -270,7 +475,7 @@ const PlanTripPage = () => {
           <div className="plan-v2-preview">
             <div className="preview-img-wrap">
               <img src={currentPreview.img} alt={currentPreview.short} />
-              <span className="preview-top-pick">● TOP PICK • TROPICAL</span>
+              <span className="preview-top-pick">● {currentPreview.badge}</span>
               <span className="preview-sector mono">{currentPreview.sector}</span>
               <div className="preview-overlay-row">
                 <span className="preview-overlay-left">⊕ {currentPreview.overlayLeft}</span>
@@ -411,14 +616,37 @@ const PlanTripPage = () => {
           <h2 className="form-step-heading">Set Estimated Total Budget</h2>
           <p className="form-step-sub">We forecast flights, hotels, food, and activities down to the rupee.</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
-            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#09090b' }}>₹</span>
+            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#09090b' }}>{currencySymbols[plannerState.currency] || '₹'}</span>
             <input
               type="number"
-              value={plannerState.budget}
-              onChange={(e) => updatePlannerField('budget', Number(e.target.value))}
+              min="0"
+              value={plannerState.budget === 0 ? '' : plannerState.budget}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const parsed = Number(raw);
+                updatePlannerField('budget', raw === '' || !Number.isFinite(parsed) ? 0 : Math.max(0, parsed));
+              }}
+              placeholder="50000"
               style={{ fontSize: '1.8rem', fontWeight: 800, padding: '8px 16px', border: '1px solid #cbd5e1', borderRadius: 8, width: 240 }}
             />
           </div>
+          <div className="currency-row" style={{ marginBottom: 10 }}>
+            {Object.keys(currencySymbols).map((code) => (
+              <button
+                key={code}
+                type="button"
+                className={plannerState.currency === code ? 'active' : ''}
+                onClick={() => handleCurrencyChange(code)}
+              >
+                {code} ({currencySymbols[code].trim() || code})
+              </button>
+            ))}
+          </div>
+          <p className="mono" style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 6px' }}>
+            {fxRates
+              ? `⚡ LIVE RATE • 1 ${plannerState.currency} = ${plannerState.currency === 'INR' ? '₹1.00' : `₹${(1 / (fxRates[plannerState.currency] || 1)).toFixed(2)}`} • switching currency converts your budget automatically`
+              : 'Fetching live exchange rates…'}
+          </p>
           <div className="planner-bottom-action-bar">
             <button className="btn-continue-pill black" onClick={handleNextStep}>
               <span>Continue to Review &amp; Synthesize</span><ArrowRight size={16} />
@@ -449,7 +677,11 @@ const PlanTripPage = () => {
           <span className="assembly-icon">✨</span>
           <div>
             <div className="assembly-title">Predictive Dynamic Assembly Active <span className="operational-badge">OPERATIONAL</span></div>
-            <div className="assembly-sub">TravelAI has already indexed 142 boutique coastal properties &amp; 38 scooter routes for Goa.</div>
+            <div className="assembly-sub">
+              {plannerState.destination
+                ? `TravelAI is indexing live stays, dining, and attractions around ${plannerState.destination}.`
+                : 'TravelAI indexes live stays, dining, and attractions for any destination you pick.'}
+            </div>
           </div>
         </div>
         <div className="assembly-right">
@@ -474,7 +706,7 @@ const PlanTripPage = () => {
           destination: destinationInput,
           duration: plannerState.duration || 5,
           budget: plannerState.budget || 50000,
-          currency: 'INR',
+          currency: plannerState.currency || 'INR',
           travelers: plannerState.travelers,
         }}
       />

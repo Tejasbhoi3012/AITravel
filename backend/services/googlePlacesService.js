@@ -1,6 +1,11 @@
 import axios from 'axios';
+import { haversineDistanceKm } from './travelCostService.js';
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+
+/* Query results change slowly — cache briefly so retyping is instant. */
+const SEARCH_CACHE = new Map();
+const SEARCH_CACHE_TTL_MS = 10 * 60 * 1000;
 
 /**
  * Search destinations / places using Google Places Autocomplete or Text Search
@@ -10,6 +15,17 @@ export const searchPlaces = async (query) => {
     return [];
   }
 
+  const cacheKey = query.trim().toLowerCase();
+  const cached = SEARCH_CACHE.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  const results = await searchPlacesUncached(query);
+  if (SEARCH_CACHE.size > 200) SEARCH_CACHE.clear();
+  SEARCH_CACHE.set(cacheKey, { value: results, expiresAt: Date.now() + SEARCH_CACHE_TTL_MS });
+  return results;
+};
+
+const searchPlacesUncached = async (query) => {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
   if (apiKey) {
@@ -64,133 +80,105 @@ export const searchPlaces = async (query) => {
 };
 
 /**
- * Search nearby hotels / lodging
+ * Reverse geocode coordinates into a place label (Google Geocoding API when
+ * a key is present, otherwise Nominatim).
  */
-export const getHotels = async (latitude, longitude, destination = 'Destination') => {
+export const reverseGeocode = async (latitude, longitude) => {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
-  if (apiKey && latitude && longitude) {
+  if (apiKey) {
     try {
       const response = await axios.get(
-        'https://maps.googleapis.com/maps/api/place/nearbysearch/json',
+        'https://maps.googleapis.com/maps/api/geocode/json',
         {
           params: {
-            location: `${latitude},${longitude}`,
-            radius: 15000,
-            type: 'lodging',
+            latlng: `${latitude},${longitude}`,
             key: apiKey,
           },
         }
       );
 
-      if (response.data && response.data.status === 'OK' && response.data.results?.length > 0) {
-        return response.data.results.slice(0, 8).map(mapGooglePlaceToItem);
+      const result = response.data?.results?.[0];
+      if (result) {
+        const components = result.address_components || [];
+        const city =
+          components.find((c) =>
+            c.types.some((t) => ['locality', 'administrative_area_level_2', 'administrative_area_level_1'].includes(t))
+          )?.long_name || '';
+        return {
+          placeId: result.place_id,
+          name: city || (result.formatted_address || '').split(',')[0] || 'Current Location',
+          country: components.find((c) => c.types.includes('country'))?.long_name || '',
+          formattedAddress: result.formatted_address || '',
+          latitude: Number(latitude),
+          longitude: Number(longitude),
+        };
       }
     } catch (error) {
-      console.warn('[Google Places API] Hotels fetch error, trying OSM:', error.message);
+      console.warn('[Google Geocoding] Reverse geocode error, trying OSM:', error.message);
     }
   }
 
-  // Free tier: OpenStreetMap Overpass (no key, no billing)
-  if (latitude && longitude) {
-    try {
-      const osmHotels = await overpassNearby(latitude, longitude, 'hotels');
-      if (osmHotels.length > 0) {
-        return osmHotels;
-      }
-    } catch (osmError) {
-      console.warn('[OSM] Overpass hotels error, using curated dataset:', osmError.message);
+  try {
+    await nominatimThrottle();
+    const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+      params: {
+        lat: latitude,
+        lon: longitude,
+        format: 'jsonv2',
+        addressdetails: 1,
+      },
+      headers: OSM_HEADERS,
+      timeout: 12000,
+    });
+
+    const r = response.data;
+    if (r && !r.error) {
+      const addr = r.address || {};
+      const name =
+        addr.suburb ||
+        addr.neighbourhood ||
+        addr.city ||
+        addr.town ||
+        addr.village ||
+        addr.county ||
+        (r.display_name || '').split(',')[0] ||
+        'Current Location';
+      return {
+        placeId: r.osm_type ? `osm_${r.osm_type}_${r.osm_id}` : `geo_${latitude}_${longitude}`,
+        name,
+        country: addr.country || '',
+        formattedAddress: r.display_name || '',
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+      };
     }
+  } catch (error) {
+    console.warn('[OSM] Nominatim reverse geocode error:', error.message);
   }
 
-  return getFallbackHotels(destination, latitude, longitude);
+  return {
+    placeId: `geo_${latitude}_${longitude}`,
+    name: 'Current Location',
+    country: '',
+    formattedAddress: `${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)}`,
+    latitude: Number(latitude),
+    longitude: Number(longitude),
+  };
 };
 
 /**
- * Search nearby restaurants / dining
+ * Single-kind getters — thin wrappers over the unified POI pipeline below
+ * (kept for the /places/hotels|restaurants|attractions endpoints).
  */
-export const getRestaurants = async (latitude, longitude, destination = 'Destination') => {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+export const getHotels = async (latitude, longitude, destination = 'Destination') =>
+  (await getNearbyPois(latitude, longitude, destination)).hotels;
 
-  if (apiKey && latitude && longitude) {
-    try {
-      const response = await axios.get(
-        'https://maps.googleapis.com/maps/api/place/nearbysearch/json',
-        {
-          params: {
-            location: `${latitude},${longitude}`,
-            radius: 15000,
-            type: 'restaurant',
-            key: apiKey,
-          },
-        }
-      );
+export const getRestaurants = async (latitude, longitude, destination = 'Destination') =>
+  (await getNearbyPois(latitude, longitude, destination)).restaurants;
 
-      if (response.data && response.data.status === 'OK' && response.data.results?.length > 0) {
-        return response.data.results.slice(0, 8).map(mapGooglePlaceToItem);
-      }
-    } catch (error) {
-      console.warn('[Google Places API] Restaurants fetch error, trying OSM:', error.message);
-    }
-  }
-
-  // Free tier: OpenStreetMap Overpass (no key, no billing)
-  if (latitude && longitude) {
-    try {
-      const osmRestaurants = await overpassNearby(latitude, longitude, 'restaurants');
-      if (osmRestaurants.length > 0) {
-        return osmRestaurants;
-      }
-    } catch (osmError) {
-      console.warn('[OSM] Overpass restaurants error, using curated dataset:', osmError.message);
-    }
-  }
-
-  return getFallbackRestaurants(destination, latitude, longitude);
-};
-
-/**
- * Search tourist attractions / sights
- */
-export const getAttractions = async (latitude, longitude, destination = 'Destination') => {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-
-  if (apiKey && latitude && longitude) {
-    try {
-      const response = await axios.get(
-        'https://maps.googleapis.com/maps/api/place/nearbysearch/json',
-        {
-          params: {
-            location: `${latitude},${longitude}`,
-            radius: 20000,
-            type: 'tourist_attraction',
-            key: apiKey,
-          },
-        }
-      );
-
-      if (response.data && response.data.status === 'OK' && response.data.results?.length > 0) {
-        return response.data.results.slice(0, 10).map(mapGooglePlaceToItem);
-      }
-    } catch (error) {
-      console.warn('[Google Places API] Attractions fetch error, trying OSM:', error.message);
-    }
-  }
-
-  // Free tier: OpenStreetMap Overpass (no key, no billing)
-  if (latitude && longitude) {
-    try {
-      const osmAttractions = await overpassNearby(latitude, longitude, 'attractions');
-      if (osmAttractions.length > 0) {
-        return osmAttractions;
-      }
-    } catch (osmError) {
-      console.warn('[OSM] Overpass attractions error, using curated dataset:', osmError.message);
-    }
-  }
-
-  return getFallbackAttractions(destination, latitude, longitude);
-};
+export const getAttractions = async (latitude, longitude, destination = 'Destination') =>
+  (await getNearbyPois(latitude, longitude, destination)).places;
 
 /**
  * Helper to map Google Place JSON to standardized place object
@@ -226,11 +214,205 @@ const OSM_HEADERS = {
   Referer: 'http://localhost:5000/',
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Real display name: at least 3 chars and containing a letter (any script). */
+const hasMeaningfulName = (name) => {
+  const trimmed = String(name || '').trim();
+  return trimmed.length >= 3 && /[^\W\d_]/u.test(trimmed);
+};
+
+/* --- Real venue photos from free sources: OSM image tags, Wikimedia Commons
+   links, and Wikidata P18 (image) claims — no API key or billing required. --- */
+
+const commonsFileUrl = (fileName) =>
+  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(String(fileName).replace(/^File:/i, ''))}?width=800`;
+
+/**
+ * Extract a real photo URL from OSM-style tags. Handles direct image URLs
+ * (`image` / `image:url`) and Wikimedia Commons file links
+ * (`wikimedia_commons` or Commons page URLs inside `image`).
+ */
+const photoFromOsmTags = (tags = {}) => {
+  const direct = tags.image || tags['image:url'];
+  if (direct) {
+    const pageMatch = String(direct).match(/commons\.wikimedia\.org\/wiki\/File:(.+)$/i);
+    if (pageMatch) {
+      try {
+        return commonsFileUrl(decodeURIComponent(pageMatch[1]));
+      } catch {
+        return commonsFileUrl(pageMatch[1]);
+      }
+    }
+    if (/^https?:\/\//i.test(direct)) return direct;
+  }
+  const commons = tags.wikimedia_commons;
+  if (commons && !/^category:/i.test(commons)) return commonsFileUrl(commons);
+  return null;
+};
+
+const WIKIDATA_CLAIM_CACHE = new Map(); // Q-id → { photo, latitude, longitude }
+
+const parseWikidataEntity = (entity) => {
+  const claims = entity?.claims || {};
+  const file = claims.P18?.[0]?.mainsnak?.datavalue?.value;
+  const coord = claims.P625?.[0]?.mainsnak?.datavalue?.value;
+  return {
+    photo: typeof file === 'string' ? commonsFileUrl(file) : null,
+    latitude: coord ? Number(coord.latitude) : null,
+    longitude: coord ? Number(coord.longitude) : null,
+  };
+};
+
+/** Batch-fetch (and cache) P18 image + P625 coordinates for Wikidata IDs. */
+const fetchWikidataClaims = async (qids) => {
+  const pending = [...new Set(qids)].filter((qid) => qid && !WIKIDATA_CLAIM_CACHE.has(qid));
+  if (pending.length === 0) return;
+  try {
+    const response = await axios.get('https://www.wikidata.org/w/api.php', {
+      params: {
+        action: 'wbgetentities',
+        ids: pending.slice(0, 50).join('|'),
+        props: 'claims',
+        format: 'json',
+      },
+      headers: OSM_HEADERS,
+      timeout: 10000,
+    });
+    const entities = response.data?.entities || {};
+    for (const qid of pending) WIKIDATA_CLAIM_CACHE.set(qid, parseWikidataEntity(entities[qid]));
+  } catch (error) {
+    // Left uncached on purpose so a later request can retry.
+    console.warn('[Wikidata] Claim lookup failed:', error.message);
+  }
+};
+
+const WIKIDATA_SEARCH_CACHE = new Map(); // `${name}|${coords}` → photo URL | null
+
+/**
+ * Photo fallback for POIs without a Wikidata tag: search Wikidata by name and
+ * accept a candidate only when its coordinates match the POI (≤3 km) — this
+ * resolves aliases correctly ("Amer Palace" → Amber Fort) while rejecting
+ * same-named entities elsewhere in the world.
+ */
+const findVenuePhotoByName = async (item) => {
+  const name = String(item.name || '').trim();
+  if (name.length < 4 || !item.latitude || !item.longitude) return null;
+  const key = `${name.toLowerCase()}|${Number(item.latitude).toFixed(3)},${Number(item.longitude).toFixed(3)}`;
+  if (WIKIDATA_SEARCH_CACHE.has(key)) return WIKIDATA_SEARCH_CACHE.get(key);
+
+  let photo = null;
+  try {
+    const response = await axios.get('https://www.wikidata.org/w/api.php', {
+      params: {
+        action: 'wbsearchentities',
+        search: name,
+        language: 'en',
+        limit: 3,
+        type: 'item',
+        format: 'json',
+      },
+      headers: OSM_HEADERS,
+      timeout: 8000,
+    });
+    const qids = (response.data?.search || []).map((entity) => entity.id).filter(Boolean);
+    if (qids.length > 0) {
+      await fetchWikidataClaims(qids);
+      const center = { latitude: Number(item.latitude), longitude: Number(item.longitude) };
+      for (const qid of qids) {
+        const claim = WIKIDATA_CLAIM_CACHE.get(qid);
+        if (!claim?.photo || !claim.latitude) continue;
+        const distance = haversineDistanceKm(center, { latitude: claim.latitude, longitude: claim.longitude });
+        if (distance !== null && distance !== undefined && distance <= 3) {
+          photo = claim.photo;
+          break;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('[Wikidata] Name search failed:', error.message);
+    return null; // not cached — retried on a later request
+  }
+  WIKIDATA_SEARCH_CACHE.set(key, photo);
+  return photo;
+};
+
+const PHOTO_NAME_SEARCH_LIMIT = 14;
+
+/**
+ * Fill `photos` for OSM POIs from free real-photo sources: OSM image tags,
+ * Wikimedia Commons links, Wikidata P18 (by tag or coordinate-validated name
+ * search). Items without any public photo keep `photos: []` — the UI applies
+ * its styled fallback for those.
+ */
+const attachRealPhotos = async (result) => {
+  const items = Object.values(result).flat();
+  const directQids = items.map((item) => item.photoHint?.wikidata).filter(Boolean);
+  if (directQids.length > 0) await fetchWikidataClaims(directQids);
+
+  // Attractions first — they benefit most from Wikidata (landmarks are far
+  // more likely to have an entity + photo than local hotels/restaurants).
+  const queues = [];
+  for (const bucket of ['places', 'hotels', 'restaurants']) {
+    const bucketItems = result[bucket] || [];
+    const queue = [];
+    for (const item of bucketItems) {
+      const hint = item.photoHint;
+      if (hint) {
+        const claim = hint.wikidata ? WIKIDATA_CLAIM_CACHE.get(hint.wikidata) : null;
+        const photo = hint.image || claim?.photo || null;
+        if (photo) item.photos = [photo];
+        delete item.photoHint;
+      }
+      if ((!item.photos || item.photos.length === 0) && String(item.placeId || '').startsWith('osm_')) {
+        queue.push(item);
+      }
+    }
+    queues.push(queue);
+  }
+
+  // Round-robin across kinds so the search budget is shared fairly.
+  const targets = [];
+  for (let i = 0; targets.length < PHOTO_NAME_SEARCH_LIMIT; i += 1) {
+    let picked = false;
+    for (const queue of queues) {
+      if (i < queue.length && targets.length < PHOTO_NAME_SEARCH_LIMIT) {
+        targets.push(queue[i]);
+        picked = true;
+      }
+    }
+    if (!picked) break;
+  }
+  const concurrency = 5;
+  for (let i = 0; i < targets.length; i += concurrency) {
+    await Promise.all(
+      targets.slice(i, i + concurrency).map(async (item) => {
+        const photo = await findVenuePhotoByName(item);
+        if (photo) item.photos = [photo];
+      })
+    );
+  }
+};
+
+/* Nominatim usage policy: max 1 request/second across all callers. */
+let nominatimLastAt = 0;
+let nominatimChain = Promise.resolve();
+const nominatimThrottle = () => {
+  const next = nominatimChain.then(async () => {
+    const wait = Math.max(0, 1100 - (Date.now() - nominatimLastAt));
+    if (wait > 0) await sleep(wait);
+    nominatimLastAt = Date.now();
+  });
+  nominatimChain = next.catch(() => {});
+  return next;
+};
+
 /**
  * Geocode / search destinations via Nominatim (free, keyless).
  * Respects Nominatim usage policy: single request per call, descriptive UA.
  */
 const searchPlacesOSM = async (query) => {
+  await nominatimThrottle();
   const response = await axios.get('https://nominatim.openstreetmap.org/search', {
     params: {
       q: query,
@@ -257,35 +439,209 @@ const searchPlacesOSM = async (query) => {
         rating: null, // OSM has no ratings — UI shows "Unrated"
         userRatingsTotal: 0,
         photos: [],
-        types: [r.type, r.class].filter(Boolean),
+        types: [r.type, r.category].filter(Boolean),
         source: 'osm',
       };
     })
     .filter((p) => p.latitude && p.longitude);
 };
 
+/* Planet-wide Overpass instances only — regional extracts (e.g. osm.ch) would
+   misleadingly return empty results for the rest of the world. */
 const OVERPASS_MIRRORS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
 ];
 
-const overpassFilterFor = (kind, radius, lat, lng) => {
-  const around = `(around:${radius},${lat},${lng})`;
-  if (kind === 'hotels') {
-    return `nwr["tourism"~"hotel|hostel|guest_house|motel|apartment|resort|chalet|lodge"]${around};`;
-  }
-  if (kind === 'restaurants') {
-    return `nwr["amenity"~"restaurant|cafe|fast_food|bar|pub|biergarten|food_court|ice_cream"]${around};`;
-  }
-  // attractions: tagged sights + anything historic
-  return `nwr["tourism"~"attraction|museum|viewpoint|artwork|gallery|zoo|theme_park|aquarium"]${around};nwr["historic"]${around};`;
-};
+const HOTEL_TAG_PATTERN = /hotel|hostel|guest_house|motel|apartment|resort|chalet|lodge/;
+const DINING_TAG_PATTERN = /restaurant|cafe|fast_food|bar|pub|biergarten|food_court|ice_cream/;
+const ATTRACTION_TAG_PATTERN = /attraction|museum|viewpoint|artwork|gallery|zoo|theme_park|aquarium/;
 
 /**
- * Nearby POIs via Overpass API (free, keyless). Returns standardized items.
+ * POI category definitions — single source of truth for the Google radius &
+ * type, Overpass selectors, tag matching, and Nominatim special-phrase
+ * fallbacks. Adding a category here covers the whole pipeline.
  */
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const POI_KINDS = {
+  hotels: {
+    bucket: 'hotels',
+    radius: 10000,
+    limit: 8,
+    googleType: 'lodging',
+    osmTag: 'tourism',
+    osmPattern: HOTEL_TAG_PATTERN,
+    matches: (tags) => HOTEL_TAG_PATTERN.test(tags.tourism || ''),
+    nominatimQuery: 'hotels',
+    nominatimCategory: 'tourism',
+    nominatimTypes: HOTEL_TAG_PATTERN,
+    fallback: (destination, lat, lng) => getFallbackHotels(destination, lat, lng),
+  },
+  restaurants: {
+    bucket: 'restaurants',
+    radius: 10000,
+    limit: 8,
+    googleType: 'restaurant',
+    osmTag: 'amenity',
+    osmPattern: DINING_TAG_PATTERN,
+    matches: (tags) => DINING_TAG_PATTERN.test(tags.amenity || ''),
+    nominatimQuery: 'restaurants',
+    nominatimCategory: 'amenity',
+    nominatimTypes: DINING_TAG_PATTERN,
+    fallback: (destination, lat, lng) => getFallbackRestaurants(destination, lat, lng),
+  },
+  attractions: {
+    bucket: 'places',
+    radius: 15000,
+    limit: 10,
+    googleType: 'tourist_attraction',
+    osmSelectors: [`nwr["tourism"~"${ATTRACTION_TAG_PATTERN.source}"]`, 'nwr["historic"]'],
+    matches: (tags) => ATTRACTION_TAG_PATTERN.test(tags.tourism || '') || Boolean(tags.historic),
+    nominatimQuery: 'attractions',
+    nominatimCategory: /tourism|historic|leisure/,
+    nominatimTypes: null,
+    fallback: (destination, lat, lng) => getFallbackAttractions(destination, lat, lng),
+  },
+};
+
+const MAX_POI_DISTANCE_KM = 60;
+
+/**
+ * POI fallback via Nominatim category search — a different infrastructure
+ * from Overpass, so it often succeeds when all Overpass mirrors are down.
+ * The search is geographically bounded to a viewbox around the destination
+ * (plain phrase + bounded=1), because "keyword in <place>" phrasing leaks
+ * results from other regions. Results are additionally validated by category
+ * and must sit within MAX_POI_DISTANCE_KM of the destination.
+ */
+const nominatimPoiSearch = async (kind, destination, latitude, longitude) => {
+  const cfg = POI_KINDS[kind];
+  if (!destination || !cfg) return [];
+  const center = { latitude: Number(latitude), longitude: Number(longitude) };
+  const hasCenter = Number.isFinite(center.latitude) && Number.isFinite(center.longitude) && (center.latitude !== 0 || center.longitude !== 0);
+
+  const box = hasCenter
+    ? (() => {
+        const km = cfg.radius / 1000; // POI radii are meters
+        const dLat = km / 111;
+        const dLng = km / (111 * Math.max(0.2, Math.cos((center.latitude * Math.PI) / 180)));
+        return [center.longitude - dLng, center.latitude + dLat, center.longitude + dLng, center.latitude - dLat]
+          .map((n) => n.toFixed(4))
+          .join(',');
+      })()
+    : null;
+
+  await nominatimThrottle();
+  const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+    params: {
+      q: cfg.nominatimQuery,
+      ...(box ? { viewbox: box, bounded: 1 } : {}),
+      format: 'jsonv2',
+      addressdetails: 1,
+      extratags: 1,
+      limit: 20,
+    },
+    headers: OSM_HEADERS,
+    timeout: 12000,
+  });
+
+  const results = Array.isArray(response.data) ? response.data : [];
+  return results
+    .filter((r) => {
+      if (!r.lat || !r.lon) return false;
+      if (!hasMeaningfulName(r.name)) return false;
+      const cat = String(r.category || '');
+      const type = String(r.type || '');
+      const catOk = cfg.nominatimCategory instanceof RegExp
+        ? cfg.nominatimCategory.test(cat)
+        : cat === cfg.nominatimCategory;
+      const typeOk = !cfg.nominatimTypes || cfg.nominatimTypes.test(type);
+      if (!catOk || !typeOk) return false;
+      if (hasCenter) {
+        const distance = haversineDistanceKm(center, { latitude: Number(r.lat), longitude: Number(r.lon) });
+        if (distance !== null && distance !== undefined && distance > MAX_POI_DISTANCE_KM) return false;
+      }
+      return true;
+    })
+    .map((r) => {
+      const addr = r.address || {};
+      const street = [addr.house_number, addr.road].filter(Boolean).join(' ');
+      const locale = addr.suburb || addr.city || addr.town || addr.village || '';
+      const address = [street, locale].filter(Boolean).join(', ') || r.display_name || '';
+      const prettyType = String(r.type || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      const category =
+        kind === 'restaurants'
+          ? (r.type === 'cafe' ? 'Cafe' : 'Dining')
+          : (prettyType || (kind === 'hotels' ? 'Lodging' : 'Attraction'));
+      const extra = r.extratags || {};
+      const directPhoto = photoFromOsmTags(extra);
+      const photoHint = {};
+      if (directPhoto) photoHint.image = directPhoto;
+      if (extra.wikidata) photoHint.wikidata = extra.wikidata;
+      return {
+        placeId: `osm_${r.osm_type}_${r.osm_id}`,
+        name: r.name || (r.display_name || '').split(',')[0],
+        rating: null,
+        userRatingsTotal: 0,
+        address,
+        vicinity: address,
+        latitude: Number(r.lat),
+        longitude: Number(r.lon),
+        photos: [], // filled by attachRealPhotos from free sources when available
+        ...(Object.keys(photoHint).length > 0 ? { photoHint } : {}),
+        priceEstimate: 'See listing',
+        category,
+        cuisine: r.extratags?.cuisine ? r.extratags.cuisine.replace(/;/g, ', ') : '',
+        openNow: true,
+        types: [r.category, r.type].filter(Boolean),
+        source: 'osm',
+      };
+    })
+    .filter((item) => hasMeaningfulName(item.name));
+};
+
+const cityHintFor = (destination) =>
+  String(destination || '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase();
+
+const normalizeName = (name) =>
+  String(name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+/**
+ * Rank POIs: notable entries (those with a Wikidata ID — real landmarks with
+ * photos) first, then entries inside the destination's own city/area, then
+ * closest. Duplicate names (same place mapped on multiple OSM elements) are
+ * collapsed, keeping the highest-ranked occurrence.
+ */
+const rankNearby = (items, latitude, longitude, destination = '') => {
+  const hint = cityHintFor(destination);
+  const center = { latitude: Number(latitude), longitude: Number(longitude) };
+
+  return items
+    .map((item) => {
+      const distanceKm = haversineDistanceKm(center, item) ?? 9999;
+      const haystack = `${item.address || ''} ${item.vicinity || ''} ${item.category || ''} ${item.name || ''}`.toLowerCase();
+      const sameArea = hint.length > 1 && haystack.includes(hint);
+      const notable = Boolean(item.photoHint?.wikidata);
+      return { item, distanceKm, sameArea, notable };
+    })
+    .sort((a, b) => {
+      if (a.notable !== b.notable) return a.notable ? -1 : 1;
+      if (a.sameArea !== b.sameArea) return a.sameArea ? -1 : 1;
+      return a.distanceKm - b.distanceKm;
+    })
+    .map((entry) => entry.item)
+    .filter((item, index, arr) => {
+      const key = normalizeName(item.name);
+      if (!key) return true;
+      return arr.findIndex((other) => normalizeName(other.name) === key) === index;
+    });
+};
 
 const queryOverpassMirror = async (mirror, query) => {
   const response = await axios.post(
@@ -293,56 +649,151 @@ const queryOverpassMirror = async (mirror, query) => {
     new URLSearchParams({ data: query }).toString(),
     {
       headers: { ...OSM_HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' },
-      timeout: 15000,
+      timeout: 9000,
     }
   );
   return response.data?.elements || [];
 };
 
 /**
- * Nearby POIs via Overpass API (free, keyless). Returns standardized items.
- * Tries multiple public mirrors + one retry — falls back to curated data
- * when the public instances are rate-limiting (HTTP 429) or slow.
+ * Race one Overpass query across all mirrors — the fastest healthy mirror
+ * wins; racing three instances already provides the redundancy, so failures
+ * fall through quickly to the Nominatim category fallback instead of
+ * retrying individual mirrors.
  */
-const overpassNearby = async (latitude, longitude, kind) => {
-  const lat = Number(latitude);
-  const lng = Number(longitude);
-  if (!lat || !lng) return [];
+const overpassFetch = async (query) => {
+  try {
+    return await Promise.any(OVERPASS_MIRRORS.map((mirror) => queryOverpassMirror(mirror, query)));
+  } catch {
+    throw new Error('All Overpass mirrors unavailable');
+  }
+};
 
-  const radius = 15000;
-  const limit = 8;
-  const query = `[out:json][timeout:15];(${overpassFilterFor(kind, radius, lat, lng)});out center ${limit};`;
+/**
+ * All POI kinds in a single Overpass request (one round-trip instead of
+ * three independent retry chains — much faster and less failure-prone).
+ */
+const buildPoiQuery = (lat, lng) => {
+  const selectors = Object.values(POI_KINDS).flatMap((cfg) => {
+    const around = `(around:${cfg.radius},${lat},${lng})`;
+    const filters = cfg.osmSelectors || [`nwr["${cfg.osmTag}"~"${cfg.osmPattern.source}"]`];
+    return filters.map((filter) => `${filter}${around};`);
+  });
+  return `[out:json][timeout:20];(${selectors.join('')});out center 400;`;
+};
 
-  let lastError = null;
-  for (const mirror of OVERPASS_MIRRORS) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const elements = await queryOverpassMirror(mirror, query);
-        const items = elements.map((el) => mapOsmElementToItem(el, kind)).filter(Boolean);
-        if (items.length > 0) {
-          return items.slice(0, limit);
-        }
-        return []; // mirror OK but area has no tagged POIs — don't hammer others
-      } catch (err) {
-        lastError = err;
-        const status = err.response?.status;
-        if (status === 429) {
-          await sleep(1500); // back off, then retry / next mirror
-        } else if (attempt === 0 && !status) {
-          await sleep(800); // transient network timeout — one retry
-        } else {
-          break; // non-retryable — try next mirror
-        }
+const fetchOsmPois = async (lat, lng, destination) => {
+  const elements = await overpassFetch(buildPoiQuery(lat, lng));
+  const buckets = { hotels: [], restaurants: [], places: [] };
+
+  for (const element of elements) {
+    const tags = element.tags || {};
+    if (!tags.name) continue;
+    for (const cfg of Object.values(POI_KINDS)) {
+      if (cfg.matches(tags)) {
+        const item = mapOsmElementToItem(element, cfg.bucket === 'places' ? 'attractions' : cfg.bucket);
+        if (item) buckets[cfg.bucket].push(item);
+        break; // one element belongs to a single bucket
       }
     }
   }
 
-  throw lastError || new Error('Overpass mirrors unavailable');
+  return {
+    hotels: rankNearby(buckets.hotels, lat, lng, destination).slice(0, POI_KINDS.hotels.limit),
+    restaurants: rankNearby(buckets.restaurants, lat, lng, destination).slice(0, POI_KINDS.restaurants.limit),
+    places: rankNearby(buckets.places, lat, lng, destination).slice(0, POI_KINDS.attractions.limit),
+  };
+};
+
+const fetchGooglePois = async (lat, lng, destination) => {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const results = {};
+  await Promise.all(
+    Object.entries(POI_KINDS).map(async ([kind, cfg]) => {
+      try {
+        const response = await axios.get(
+          'https://maps.googleapis.com/maps/api/place/nearbysearch/json',
+          { params: { location: `${lat},${lng}`, radius: cfg.radius, type: cfg.googleType, key: apiKey } }
+        );
+        if (response.data?.status === 'OK' && response.data.results?.length > 0) {
+          results[kind] = rankNearby(response.data.results.map(mapGooglePlaceToItem), lat, lng, destination).slice(0, cfg.limit);
+        }
+      } catch (error) {
+        console.warn(`[Google Places API] ${kind} fetch error, trying OSM:`, error.message);
+      }
+    })
+  );
+  return results;
+};
+
+/* Results change slowly — cache per rounded coords + destination. */
+const POI_CACHE = new Map();
+const POI_CACHE_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * Nearest POIs for a destination in one pass:
+ * Google (only when a key is configured) → one combined Overpass query →
+ * Nominatim special-phrase per still-empty kind → curated last resort.
+ */
+export const getNearbyPois = async (latitude, longitude, destination = 'Destination') => {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  if (!lat || !lng) return { hotels: [], restaurants: [], places: [] };
+
+  const cacheKey = `${lat.toFixed(3)}|${lng.toFixed(3)}|${destination}`;
+  const cached = POI_CACHE.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  const result = { hotels: [], restaurants: [], places: [] };
+
+  if (process.env.GOOGLE_MAPS_API_KEY) {
+    const google = await fetchGooglePois(lat, lng, destination);
+    for (const [kind, items] of Object.entries(google)) result[POI_KINDS[kind].bucket] = items;
+  }
+
+  const unfilled = Object.keys(POI_KINDS).filter((kind) => result[POI_KINDS[kind].bucket].length === 0);
+  if (unfilled.length > 0) {
+    let nominatimKinds = unfilled;
+    try {
+      const osm = await fetchOsmPois(lat, lng, destination);
+      nominatimKinds = [];
+      for (const kind of unfilled) {
+        const bucket = POI_KINDS[kind].bucket;
+        if (osm[bucket].length > 0) result[bucket] = osm[bucket];
+        else nominatimKinds.push(kind); // sparse area — try Nominatim
+      }
+    } catch (error) {
+      console.warn('[OSM] Combined Overpass POI fetch failed, trying Nominatim fallback:', error.message);
+    }
+
+    for (const kind of nominatimKinds) {
+      const cfg = POI_KINDS[kind];
+      try {
+        const items = await nominatimPoiSearch(kind, destination, lat, lng);
+        if (items.length > 0) result[cfg.bucket] = rankNearby(items, lat, lng, destination).slice(0, cfg.limit);
+      } catch (nominatimError) {
+        console.warn(`[OSM] Nominatim ${kind} fallback error:`, nominatimError.message);
+      }
+    }
+  }
+
+  for (const cfg of Object.values(POI_KINDS)) {
+    if (result[cfg.bucket].length === 0) result[cfg.bucket] = cfg.fallback(destination, lat, lng);
+  }
+
+  await attachRealPhotos(result);
+
+  if (POI_CACHE.size > 100) {
+    const now = Date.now();
+    for (const [key, entry] of POI_CACHE) if (entry.expiresAt < now) POI_CACHE.delete(key);
+  }
+  POI_CACHE.set(cacheKey, { value: result, expiresAt: Date.now() + POI_CACHE_TTL_MS });
+  return result;
 };
 
 const mapOsmElementToItem = (el, kind) => {
   const tags = el.tags || {};
-  if (!tags.name) return null;
+  if (!hasMeaningfulName(tags.name)) return null;
   const lat = el.lat ?? el.center?.lat;
   const lon = el.lon ?? el.center?.lon;
   if (!lat || !lon) return null;
@@ -358,6 +809,11 @@ const mapOsmElementToItem = (el, kind) => {
         ? (tags.cuisine ? `${tags.cuisine} cuisine` : (tags.amenity || 'Dining').replace(/_/g, ' '))
         : (tags.tourism || tags.historic || 'Attraction').replace(/_/g, ' ');
 
+  const directPhoto = photoFromOsmTags(tags);
+  const photoHint = {};
+  if (directPhoto) photoHint.image = directPhoto;
+  if (tags.wikidata) photoHint.wikidata = tags.wikidata;
+
   return {
     placeId: `osm_${el.type}_${el.id}`,
     name: tags.name,
@@ -367,7 +823,8 @@ const mapOsmElementToItem = (el, kind) => {
     vicinity: address,
     latitude: Number(lat),
     longitude: Number(lon),
-    photos: [], // card components fall back to stock imagery
+    photos: [], // filled by attachRealPhotos from free sources when available
+    ...(Object.keys(photoHint).length > 0 ? { photoHint } : {}),
     priceEstimate: 'See listing',
     category,
     cuisine: tags.cuisine || '',
@@ -378,6 +835,11 @@ const mapOsmElementToItem = (el, kind) => {
 };
 
 /* --- Fallback generators for offline / mock testing --- */
+
+/** Fallback labels use the destination's short city name ("Jaipur"), never
+    the full "Jaipur, India" query string. */
+const cityLabelFor = (destination) =>
+  String(destination || 'Local').split(',')[0].trim() || 'Local';
 
 const getFallbackDestinations = (query) => {
   const q = query.toLowerCase();
@@ -394,7 +856,9 @@ const getFallbackDestinations = (query) => {
   return sample.filter((item) => item.name.toLowerCase().includes(q) || item.country.toLowerCase().includes(q));
 };
 
-const getFallbackHotels = (destination, lat = 15.2993, lng = 74.124) => [
+const getFallbackHotels = (rawDestination, lat, lng) => {
+  const destination = cityLabelFor(rawDestination);
+  return [
   {
     placeId: `hotel_1_${destination}`,
     name: `The Grand ${destination} Palace & Spa`,
@@ -434,9 +898,12 @@ const getFallbackHotels = (destination, lat = 15.2993, lng = 74.124) => [
     category: 'Resort',
     openNow: true,
   },
-];
+  ];
+};
 
-const getFallbackRestaurants = (destination, lat = 15.2993, lng = 74.124) => [
+const getFallbackRestaurants = (rawDestination, lat, lng) => {
+  const destination = cityLabelFor(rawDestination);
+  return [
   {
     placeId: `rest_1_${destination}`,
     name: `${destination} Heritage Bistro`,
@@ -476,9 +943,12 @@ const getFallbackRestaurants = (destination, lat = 15.2993, lng = 74.124) => [
     priceEstimate: '$',
     openNow: true,
   },
-];
+  ];
+};
 
-const getFallbackAttractions = (destination, lat = 15.2993, lng = 74.124) => [
+const getFallbackAttractions = (rawDestination, lat, lng) => {
+  const destination = cityLabelFor(rawDestination);
+  return [
   {
     placeId: `attr_1_${destination}`,
     name: `Historic Landmark & Fort of ${destination}`,
@@ -515,4 +985,5 @@ const getFallbackAttractions = (destination, lat = 15.2993, lng = 74.124) => [
     category: 'Arts & Culture',
     openNow: true,
   },
-];
+  ];
+};
