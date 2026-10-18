@@ -187,7 +187,7 @@ const RegisterPage = () => {
               <button type="button" className={`check-box ${agreed ? 'on' : ''}`} onClick={() => setAgreed(!agreed)}>
                 {agreed && <Check size={13} />}
               </button>
-              <span>I agree to <Link to="#terms">Terms of Service</Link> &amp; <Link to="#privacy">Privacy Policy</Link></span>
+              <span onClick={() => setAgreed(!agreed)} style={{ cursor: 'pointer' }}>I agree to the Terms of Service &amp; Privacy Policy</span>
             </div>
 
             <button type="submit" className="btn-auth-submit black-big" disabled={loading}>

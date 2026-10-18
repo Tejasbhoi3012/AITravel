@@ -3554,3 +3554,151 @@ html.dark .workspace-heading, html.dark .wp-badge, html.dark .ws-meta-pill, html
 html.dark .ws-tab.active, html.dark .ws-v2-crumb, html.dark .ws-v2-terminal, html.dark .years-pill {
   color: #e6e9f0;
 }
+
+/* ==========================================================================
+   MOBILE FRIENDLINESS — ROUND 2
+   (auth pages, custom journey planner, workspace, shared, home, misc)
+   ========================================================================== */
+
+/* --- Previously undefined classes (loading states, planner steps, errors) --- */
+.page-loading-spinner {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 90px 20px; text-align: center;
+  font-size: 0.86rem; color: #64748b;
+}
+.page-loading-spinner .spinner,
+.spinner {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid #dbe4f0; border-top-color: #0b5cad;
+  animation: spin 0.9s linear infinite;
+}
+.spin { animation: spin 0.9s linear infinite; }
+
+.selection-card {
+  background: #fff; border: 1px solid #e4e4e7; border-radius: 12px; padding: 16px;
+  cursor: pointer; transition: border-color 0.15s ease-out, background-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+.selection-card:hover { border-color: #0b5cad; background: #f6fafe; }
+.selection-card.selected { border-color: #09090b; background: #f4f4f5; box-shadow: 0 0 0 2px rgba(9, 9, 11, 0.08); }
+.selection-card h4 { font-size: 0.9rem; font-weight: 700; color: #18181b; margin-bottom: 4px; }
+.selection-card p { font-size: 0.74rem; color: #71717a; line-height: 1.45; }
+
+.range-slider { width: 100%; accent-color: #0b5cad; }
+
+.generation-error-box { text-align: center; padding: 26px 10px; }
+.generation-error-box .error-icon { color: #dc2626; margin-bottom: 8px; }
+.generation-error-box h3 { font-size: 1.1rem; font-weight: 800; color: #18181b; margin-bottom: 6px; }
+.generation-error-box p { font-size: 0.82rem; color: #52525b; margin-bottom: 16px; }
+.error-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #09090b; color: #fff; border: none; border-radius: 999px;
+  padding: 11px 22px; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+}
+.btn-primary:disabled { opacity: 0.7; cursor: wait; }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #fff; color: #27272a; border: 1px solid #e4e4e7; border-radius: 999px;
+  padding: 11px 22px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+
+/* --- Auth pages: tappable controls + card order on phones --- */
+.form-top-row { flex-wrap: wrap; gap: 6px; }
+.eye-btn { padding: 10px; margin-right: -10px; align-items: center; justify-content: center; }
+.check-box { width: 24px; height: 24px; min-width: 24px; }
+.remember-row { gap: 10px; }
+
+/* --- Plan page ("Design Your Custom Journey") --- */
+.plan-v2-toprow { flex-wrap: wrap; }
+.plan-v2-sysloc { overflow-wrap: anywhere; }
+.plan-header-row { flex-wrap: wrap; gap: 16px; }
+.plan-v2-formhead { flex-wrap: wrap; gap: 10px; }
+.plan-v2-fieldrow { flex-wrap: wrap; gap: 8px; }
+.plan-v2-formfoot { flex-wrap: wrap; gap: 12px; }
+.currency-row { flex-wrap: wrap; }
+.assembly-right { flex-wrap: wrap; }
+
+/* --- Home page --- */
+.hero-cta-group {
+  display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+  margin-bottom: 22px;
+}
+.hero-cta-group .btn-hero-primary,
+.hero-cta-group .btn-hero-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.proof-pill { flex-wrap: wrap; justify-content: center; row-gap: 4px; border-radius: 18px; }
+.filter-pills-group { flex-wrap: wrap; }
+.expense-foot-row { flex-wrap: wrap; gap: 8px; }
+
+/* --- Trip details workspace --- */
+.workspace-actions-group { flex-wrap: wrap; }
+.seq-head { flex-wrap: wrap; }
+
+/* --- My Trips --- */
+.arch-foot { flex-wrap: wrap; gap: 10px; }
+
+/* --- Profile --- */
+.sync-row { flex-wrap: wrap; }
+
+/* --- Generating page --- */
+.gen-card-head { flex-wrap: wrap; gap: 8px; }
+.gen-card-foot { flex-wrap: wrap; gap: 10px; }
+
+/* --- Shared trip page --- */
+.shared-days-bar { overflow-x: auto; }
+.feed-topline { flex-wrap: wrap; row-gap: 4px; }
+
+/* --- Small screens --- */
+@media (max-width: 900px) {
+  .auth-form-panel { order: -1; }
+  .nav-bell-btn, .theme-toggle-btn, .nav-hamburger { padding: 9px; }
+}
+
+@media (max-width: 640px) {
+  /* Custom journey planner */
+  .plan-header-row { flex-direction: column; }
+  .plan-v2 .ai-synthesis-widget { width: 100%; }
+  .plan-v2-form, .plan-v2 .plan-form-card, .plan-form-card { padding: 18px 14px; }
+  .plan-v2-preview { padding: 14px; }
+  .preview-img-wrap img { height: 220px; }
+  .plan-v2-formfoot { flex-direction: column-reverse; align-items: stretch; }
+  .plan-v2-formfoot .btn-continue-pill { width: 100%; justify-content: center; }
+  .plan-v2-formfoot .save-draft-btn { width: 100%; padding: 12px; border: 1px solid #e4e4e7; border-radius: 12px; }
+  .planner-bottom-action-bar { justify-content: stretch; }
+  .planner-bottom-action-bar .btn-continue-pill { width: 100%; justify-content: center; }
+  .plan-v2-toprow { gap: 8px; }
+  .form-step-heading { font-size: 1.3rem; }
+
+  /* Home page */
+  .widget-step-btns button { width: 30px; height: 30px; }
+  .widget-tag-chip { padding: 6px 12px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 999px; }
+  .dest-btn-explore { padding: 8px 16px; }
+  .btn-widget-submit { width: 100%; }
+
+  /* Trip details workspace */
+  .tl-card { flex-wrap: wrap; }
+  .tl-side { flex-basis: 100%; justify-content: space-between; }
+  .nodes-note { display: none; }
+  .sync-foot { flex-direction: column; align-items: flex-start; }
+
+  /* My Trips */
+  .audit-v2-header { padding: 18px 16px; }
+  .audit-v2-headerright { align-items: flex-start; width: 100%; }
+  .audit-v2-headerright .currency-row { justify-content: flex-start; }
+
+  /* Profile */
+  .profile-card { padding: 26px 18px 30px; }
+}
+
+/* --- Dark theme for the new surfaces --- */
+html.dark .page-loading-spinner { color: #8b95a7; }
+html.dark .spinner, html.dark .page-loading-spinner .spinner { border-color: #232c3b; border-top-color: #6ea8ff; }
+html.dark .selection-card { background: #121a28; border-color: #232c3b; }
+html.dark .selection-card:hover { background: #16202f; border-color: #6ea8ff; }
+html.dark .selection-card.selected { background: #1b2433; border-color: #6ea8ff; box-shadow: 0 0 0 2px rgba(110, 168, 255, 0.2); }
+html.dark .selection-card h4 { color: #e6e9f0; }
+html.dark .selection-card p { color: #8b95a7; }
+html.dark .btn-primary { background: #e8ecf3; color: #0b0f19; }
+html.dark .btn-secondary { background: #121a28; border-color: #2a3444; color: #d3d9e3; }
+html.dark .generation-error-box h3 { color: #e6e9f0; }
+html.dark .generation-error-box p { color: #8b95a7; }
+html.dark .save-draft-btn { border-color: #2a3444; }

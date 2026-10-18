@@ -437,7 +437,7 @@ const TripDetailsPage = () => {
       />
       <button
         onClick={() => setIsChatOpen(true)}
-        style={{ position: 'fixed', bottom: 22, right: 22, background: '#0b5cad', color: '#fff', border: 'none', borderRadius: 999, padding: '11px 18px', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center', boxShadow: '0 6px 20px rgba(11,92,173,0.4)', zIndex: 60 }}
+        style={{ position: 'fixed', bottom: 'calc(16px + env(safe-area-inset-bottom))', right: 16, background: '#0b5cad', color: '#fff', border: 'none', borderRadius: 999, padding: '11px 18px', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center', boxShadow: '0 6px 20px rgba(11,92,173,0.4)', zIndex: 60 }}
       >
         <Sparkles size={14} /> Ask TravelAI
       </button>
