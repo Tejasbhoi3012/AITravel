@@ -24,8 +24,27 @@ const app = express();
 
 // Security and utility middleware
 app.use(helmet({ crossOriginResourcePolicy: false }));
+// CORS: local dev + deployed frontend origins (extend via comma-separated CLIENT_ORIGINS env var)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://ai-travel-pink-two.vercel.app',
+  ...(process.env.CLIENT_ORIGINS
+    ? process.env.CLIENT_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    : []),
+];
+
 app.use(cors({
-  origin: true, // Allow frontend dev server and production origins
+  origin: (origin, callback) => {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      /^https:\/\/ai-travel-pink-two[a-z0-9-]*\.vercel\.app$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   credentials: true,
 }));
 app.use(express.json());
