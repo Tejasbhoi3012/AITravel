@@ -7,12 +7,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('travelai_token') || null);
   const [loading, setLoading] = useState(true);
+  const [welcomeUser, setWelcomeUser] = useState(null);
 
   const logout = () => {
     localStorage.removeItem('travelai_token');
     setToken(null);
     setUser(null);
+    setWelcomeUser(null);
   };
+
+  const dismissWelcome = () => setWelcomeUser(null);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -41,6 +45,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('travelai_token', data.token);
       setToken(data.token);
       setUser(data.user);
+      setWelcomeUser(data.user || { name: 'Traveler' });
     }
     return data;
   };
@@ -51,6 +56,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('travelai_token', data.token);
       setToken(data.token);
       setUser(data.user);
+      setWelcomeUser(data.user || { name });
     }
     return data;
   };
@@ -61,6 +67,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('travelai_token', data.token);
       setToken(data.token);
       setUser(data.user);
+      setWelcomeUser(data.user || { name: 'Traveler' });
     }
     return data;
   };
@@ -80,6 +87,8 @@ export const AuthProvider = ({ children }) => {
         token,
         isAuthenticated: !!token,
         loading,
+        welcomeUser,
+        dismissWelcome,
         login,
         register,
         googleLogin,

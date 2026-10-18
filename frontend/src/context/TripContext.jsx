@@ -1,9 +1,22 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import * as aiService from '../services/aiService';
 import * as tripService from '../services/tripService';
 import { useNotifications } from './NotificationContext';
+import { useAuth } from './AuthContext';
 
 const TripContext = createContext();
+
+const DRAFT_KEY_PREFIX = 'travelai_planner_draft_';
+
+const loadDraft = (key) => {
+  if (!key) return null;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
 
 const initialPlannerState = {
   destination: 'Goa',
@@ -188,12 +201,42 @@ const createClientFallbackTrip = (state) => {
 
 export const TripProvider = ({ children }) => {
   const { addNotification } = useNotifications();
+  const { user } = useAuth();
   const [plannerState, setPlannerState] = useState(initialPlannerState);
   const [currentTrip, setCurrentTrip] = useState(null);
   const [userTrips, setUserTrips] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generationStep, setGenerationStep] = useState('');
   const [error, setError] = useState(null);
+
+  const draftKey = user ? `${DRAFT_KEY_PREFIX}${user._id || user.email}` : null;
+
+  // Restore the saved planner draft whenever a different user signs in, so
+  // leaving and coming back to the planner (or reloading) keeps entered info.
+  useEffect(() => {
+    if (!draftKey) {
+      setPlannerState(initialPlannerState);
+      return;
+    }
+    const draft = loadDraft(draftKey);
+    if (draft && typeof draft === 'object') {
+      setPlannerState({
+        ...initialPlannerState,
+        ...draft,
+        preferences: { ...initialPlannerState.preferences, ...(draft.preferences || {}) },
+      });
+    }
+  }, [draftKey]);
+
+  // Auto-save every planner change to the signed-in user's draft.
+  useEffect(() => {
+    if (!draftKey) return;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(plannerState));
+    } catch {
+      // storage unavailable — draft stays in memory for this session
+    }
+  }, [plannerState, draftKey]);
 
   const updatePlannerField = (field, value) => {
     setPlannerState((prev) => ({

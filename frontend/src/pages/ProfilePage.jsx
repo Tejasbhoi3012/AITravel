@@ -75,7 +75,7 @@ const ProfilePage = () => {
           <span className="profile-avatar-status" />
         </div>
 
-        <h1 className="profile-title">User Profile</h1>
+        <h1 className="profile-title">{user?.name?.trim() || 'User Profile'}</h1>
         <p className="profile-email">{user?.email || 'Logged in Traveler'}</p>
 
         {savedMessage && (
