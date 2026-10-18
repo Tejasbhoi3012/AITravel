@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Star, MapPin, Utensils, Filter, PlusCircle } from 'lucide-react';
+import { Filter } from 'lucide-react';
+import GmPlaceCard from './GmPlaceCard';
 
 const RestaurantsSection = ({ restaurants = [], onFocusLocation, onAddPlaceToItinerary }) => {
   const [minRating, setMinRating] = useState(0);
@@ -47,63 +48,21 @@ const RestaurantsSection = ({ restaurants = [], onFocusLocation, onAddPlaceToIti
       </div>
 
       {/* Grid */}
-      <div className="hotels-grid">
-        {filteredRestaurants.map((resto, index) => (
-          <div key={resto.placeId || index} className="place-card restaurant-card">
-            <div className="card-image-wrap">
-              <img
-                src={
-                  resto.photos && resto.photos[0]
-                    ? resto.photos[0]
-                    : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80'
-                }
-                alt={resto.name}
-                className="card-img"
-                loading="lazy"
-              />
-              <div className="card-badge rating-badge">
-                <Star size={13} className="star-icon" />
-                <span>{resto.rating ? resto.rating : 'Unrated'}</span>
-                {resto.userRatingsTotal ? <small>({resto.userRatingsTotal})</small> : null}
-              </div>
-            </div>
-
-            <div className="card-body">
-              <div className="card-meta">
-                <span className="card-category">
-                  <Utensils size={13} /> {resto.cuisine || 'Local Specialties'}
-                </span>
-                <span className="price-tag">{resto.priceEstimate || '$$'}</span>
-              </div>
-
-              <h4 className="card-title">{resto.name}</h4>
-              <p className="card-address">
-                <MapPin size={13} />
-                <span>{resto.address || resto.vicinity || 'Local Dining'}</span>
-              </p>
-
-              <div className="card-actions">
-                {resto.latitude && resto.longitude && onFocusLocation && (
-                  <button
-                    className="btn-card-secondary"
-                    onClick={() => onFocusLocation(resto.latitude, resto.longitude, resto.name)}
-                  >
-                    <MapPin size={14} /> View on Map
-                  </button>
-                )}
-                {onAddPlaceToItinerary && (
-                  <button
-                    className="btn-card-primary"
-                    onClick={() => onAddPlaceToItinerary(resto, 'restaurant')}
-                  >
-                    <PlusCircle size={14} /> Add to Trip
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {filteredRestaurants.length === 0 ? (
+        <div className="section-empty">No restaurants match your filters.</div>
+      ) : (
+        <div className="hotels-grid">
+          {filteredRestaurants.map((resto, index) => (
+            <GmPlaceCard
+              key={resto.placeId || index}
+              item={resto}
+              kind="restaurant"
+              onFocusLocation={onFocusLocation}
+              onAddPlaceToItinerary={onAddPlaceToItinerary}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

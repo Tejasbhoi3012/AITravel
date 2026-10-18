@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrip } from '../context/TripContext';
 import {
-  MapPin,
   Minus,
   Plus,
   Calendar,
@@ -10,6 +9,7 @@ import {
   Star,
   Send,
 } from 'lucide-react';
+import DestinationAutosuggest from '../components/DestinationAutosuggest';
 import AIChatDrawer from '../components/AIChatDrawer';
 
 const HomePage = () => {
@@ -60,6 +60,26 @@ const HomePage = () => {
   const handleQuickDestinationSelect = (destName) => {
     setDestination(destName);
     updatePlannerField('destination', destName);
+    updatePlannerField('destinationDetails', null);
+  };
+
+  const handleHomeDestinationChange = (value) => {
+    setDestination(value);
+    updatePlannerField('destination', value);
+    updatePlannerField('destinationDetails', null);
+  };
+
+  const handleSelectHomeSuggestion = (place) => {
+    const label = place.country ? `${place.name}, ${place.country}` : place.name;
+    setDestination(label);
+    updatePlannerField('destination', label);
+    updatePlannerField('destinationDetails', {
+      name: place.name,
+      country: place.country,
+      placeId: place.placeId,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    });
   };
 
   const handleSendDemoMessage = (e) => {
@@ -168,16 +188,17 @@ const HomePage = () => {
         <div className="hero-widget-card">
           <div className="widget-field-box">
             <div className="widget-label-row"><span>DESTINATION</span></div>
-            <div className="widget-dest-input">
-              <MapPin size={13} className="widget-icon" />
-              <input
-                type="text"
-                className="widget-input"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                placeholder="Goa, India"
-              />
-            </div>
+            <DestinationAutosuggest
+              value={destination}
+              onChange={handleHomeDestinationChange}
+              onSelect={handleSelectHomeSuggestion}
+              placeholder="Goa, India"
+              iconSize={13}
+              iconClass="widget-icon"
+              wrapClass="widget-dest-input-wrap"
+              boxClass="widget-dest-input"
+              inputClass="widget-input"
+            />
             <div className="widget-tags-row">
               {['Goa', 'Bali', 'Dubai', 'Paris'].map((tag) => (
                 <span key={tag} className="widget-tag-chip" onClick={() => handleQuickDestinationSelect(tag)}>

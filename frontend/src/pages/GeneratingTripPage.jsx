@@ -21,8 +21,8 @@ const GeneratingTripPage = () => {
   const [error, setError] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
-  const destination = plannerState.destination || 'Dubai, UAE';
-  const destCode = destination.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || 'DUBAI';
+  const destination = plannerState.destination || 'Your Destination';
+  const destCode = destination.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || 'DEST';
   const pct = pctMap[Math.min(currentStepIndex, pctMap.length - 1)];
 
   const runGeneration = useCallback(async () => {
@@ -126,7 +126,11 @@ const GeneratingTripPage = () => {
         <div className="gen-mini mono">GEMINI: <span className="struct-blue">● STRUCTURING</span></div>
       </div>
 
-      <div className="mono gen-geo">GEO-VECTOR: 25.2048° N, 55.2708° E • CLUSTER: AE-DXB-BURJ • ENCRYPTION: SHA-256</div>
+      <div className="mono gen-geo">
+        GEO-VECTOR: {plannerState.destinationDetails
+          ? `${Number(plannerState.destinationDetails.latitude).toFixed(4)}°, ${Number(plannerState.destinationDetails.longitude).toFixed(4)}°`
+          : 'RESOLVING VIA GEOCODER'} • CLUSTER: {destCode} • ENCRYPTION: SHA-256
+      </div>
     </div>
   );
 };

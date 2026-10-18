@@ -8,28 +8,33 @@ const catIcons = {
   Activities: Ticket,
 };
 
-const fallback = {
-  totalPotentialSavings: 375,
-  suggestions: [
-    {
-      category: 'Hotel',
-      estimatedSavings: '~169 USD',
-      title: 'Opt for Boutique Stays or Group Apartments',
-      description: 'Booking local verified boutique stays or apartments in Goa can save up to 20% on accommodation without sacrificing comfort.',
-    },
-    {
-      category: 'Food',
-      estimatedSavings: '~113 USD',
-      title: 'Mix Fine Dining with Famous Local Eateries',
-      description: 'Enjoy high-rated local markets and neighborhood bistros for breakfasts and lunches, reserving fine dining for special evenings.',
-    },
-    {
-      category: 'Activities',
-      estimatedSavings: '~94 USD',
-      title: 'Use City Travel Passes & Book Attractions in Advance',
-      description: 'Multi-attraction tourist passes offer discounted entry and skip-the-line privileges across major landmarks.',
-    },
-  ],
+const buildFallback = (trip) => {
+  const destination = trip?.destination || 'your destination';
+  const shortDest = destination.split(',')[0].trim() || 'your destination';
+  const budgetValue = Number(trip?.budget) || 2500;
+  return {
+    totalPotentialSavings: Math.round(budgetValue * 0.15),
+    suggestions: [
+      {
+        category: 'Hotel',
+        estimatedSavings: '~12%',
+        title: 'Opt for Boutique Stays or Group Apartments',
+        description: `Booking local verified boutique stays or apartments in ${shortDest} can save up to 20% on accommodation without sacrificing comfort.`,
+      },
+      {
+        category: 'Food',
+        estimatedSavings: '~9%',
+        title: 'Mix Fine Dining with Famous Local Eateries',
+        description: `Enjoy high-rated local markets and neighborhood bistros in ${shortDest} for breakfasts and lunches, reserving fine dining for special evenings.`,
+      },
+      {
+        category: 'Activities',
+        estimatedSavings: '~7%',
+        title: 'Use City Travel Passes & Book Attractions in Advance',
+        description: `Multi-attraction tourist passes around ${shortDest} offer discounted entry and skip-the-line privileges across major landmarks.`,
+      },
+    ],
+  };
 };
 
 const AIBudgetOptimizerModal = ({ isOpen, onClose, trip }) => {
@@ -54,10 +59,10 @@ const AIBudgetOptimizerModal = ({ isOpen, onClose, trip }) => {
       if (res.success && res.optimization) {
         setData(res.optimization);
       } else {
-        setData(fallback);
+        setData(null);
       }
     } catch {
-      setData(fallback);
+      setData(null);
       setError(null);
     } finally {
       setLoading(false);
@@ -75,7 +80,7 @@ const AIBudgetOptimizerModal = ({ isOpen, onClose, trip }) => {
 
   if (!isOpen) return null;
 
-  const shown = data || fallback;
+  const shown = data || buildFallback(trip);
   const currency = trip?.currency || 'USD';
 
   return (

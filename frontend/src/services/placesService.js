@@ -7,23 +7,16 @@ export const searchPlaces = async (query) => {
   return response.data;
 };
 
-export const getHotels = async (lat, lng, destination) => {
-  const response = await api.get('/places/hotels', {
-    params: { lat, lng, destination },
+export const reverseGeocode = async (latitude, longitude) => {
+  const response = await api.get('/places/reverse', {
+    params: { lat: latitude, lng: longitude },
   });
   return response.data;
 };
 
-export const getRestaurants = async (lat, lng, destination) => {
-  const response = await api.get('/places/restaurants', {
-    params: { lat, lng, destination },
-  });
-  return response.data;
-};
-
-export const getAttractions = async (lat, lng, destination) => {
-  const response = await api.get('/places/attractions', {
-    params: { lat, lng, destination },
+export const estimateTravel = async ({ fromLat, fromLng, toLat, toLng, travelers, currency }) => {
+  const response = await api.get('/places/estimate-travel', {
+    params: { fromLat, fromLng, toLat, toLng, travelers, currency },
   });
   return response.data;
 };

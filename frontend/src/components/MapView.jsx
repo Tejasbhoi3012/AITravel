@@ -46,8 +46,8 @@ const ratingLabel = (item) => {
 };
 
 const MapView = ({
-  center = { lat: 15.2993, lng: 74.124 },
-  destination = 'Goa, India',
+  center = { lat: 20.5937, lng: 78.9629 },
+  destination = 'Destination',
   hotels = [],
   restaurants = [],
   places = [],
@@ -57,29 +57,11 @@ const MapView = ({
   const [selectedItem, setSelectedItem] = useState(null);
   const [focus, setFocus] = useState(null);
 
-  const allItems = useMemo(() => {
-    const baseHotels = (hotels.length > 0 ? hotels : [
-      { name: 'Casa De Goa Boutique Resort', lat: 15.5435, lng: 73.7554, rating: 4.6, price: '₹4,500/night', desc: 'Portuguese style luxury resort near Calangute beach' },
-      { name: 'Taj Fort Aguada Resort & Spa', lat: 15.4989, lng: 73.7667, rating: 4.8, price: '₹12,000/night', desc: '5-star cliffside luxury overlooking Sinquerim beach' },
-      { name: 'W Goa Beach Resort', lat: 15.6022, lng: 73.7388, rating: 4.7, price: '₹14,500/night', desc: 'Vagator beachfront modern luxury resort' },
-    ]).map((h) => normalize(h, 'hotel'));
-
-    const baseRestaurants = (restaurants.length > 0 ? restaurants : [
-      { name: 'Navtara Pure Veg Coastal Diner', lat: 15.5412, lng: 73.7589, rating: 4.5, price: '₹600 for two', desc: 'Authentic Goan vegetarian thali & coastal dosas' },
-      { name: "Souza Lobo & Tito's Lane", lat: 15.5398, lng: 73.7512, rating: 4.6, price: '₹1,400 for two', desc: 'Iconic beachside seafood & Goan curries with live music' },
-      { name: 'Gunpowder Assagao', lat: 15.5891, lng: 73.7745, rating: 4.7, price: '₹1,200 for two', desc: 'South Indian coastal specialty in a heritage garden villa' },
-    ]).map((r) => normalize(r, 'restaurant'));
-
-    const basePlaces = (places.length > 0 ? places : [
-      { name: 'Fort Aguada & Lighthouse', lat: 15.4925, lng: 73.7736, rating: 4.7, price: '₹50 entry', desc: '17th-century Portuguese coastal fortress and sunset lookout' },
-      { name: 'Baga & Calangute Beach Strip', lat: 15.5524, lng: 73.7517, rating: 4.5, price: 'Free access', desc: 'Lively golden sands, shacks, and exhilarating watersports' },
-      { name: 'Chapora Fort (Dil Chahta Hai)', lat: 15.6058, lng: 73.7369, rating: 4.6, price: 'Free access', desc: 'Panoramic hilltop fortress overlooking Vagator and Ozran' },
-      { name: 'Basilica of Bom Jesus (Old Goa)', lat: 15.5009, lng: 73.9116, rating: 4.8, price: 'Free access', desc: 'UNESCO World Heritage site with baroque Portuguese architecture' },
-    ]).map((p) => normalize(p, 'place'));
-
-    return [...baseHotels, ...baseRestaurants, ...basePlaces].filter((i) => i.lat && i.lng);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hotels.length, restaurants.length, places.length, destination]);
+  const allItems = useMemo(() => [
+    ...hotels.map((h) => normalize(h, 'hotel')),
+    ...restaurants.map((r) => normalize(r, 'restaurant')),
+    ...places.map((p) => normalize(p, 'place')),
+  ].filter((i) => i.lat && i.lng), [hotels, restaurants, places]);
 
   const filteredItems = useMemo(() => (
     activeCategory === 'all' ? allItems : allItems.filter((item) => item.category === activeCategory)
@@ -89,8 +71,8 @@ const MapView = ({
   const restaurantCount = useMemo(() => allItems.filter((i) => i.category === 'restaurant').length, [allItems]);
   const placeCount = useMemo(() => allItems.filter((i) => i.category === 'place').length, [allItems]);
 
-  const activeLat = focusedLocation?.lat || focus?.lat || center?.lat || 15.2993;
-  const activeLng = focusedLocation?.lng || focus?.lng || center?.lng || 74.124;
+  const activeLat = focusedLocation?.lat || focus?.lat || center?.lat || 20.5937;
+  const activeLng = focusedLocation?.lng || focus?.lng || center?.lng || 78.9629;
 
   const handlePanTo = (item) => {
     setSelectedItem(item);
@@ -191,6 +173,15 @@ const MapView = ({
             );
           })}
         </MapContainer>
+
+        {filteredItems.length === 0 && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(248,250,252,0.88)', zIndex: 400, padding: 24, textAlign: 'center' }}>
+            <div>
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem', marginBottom: 6 }}>No mapped locations for {destination}</div>
+              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Hotels, restaurants and attractions from the trip will appear here once indexed.</div>
+            </div>
+          </div>
+        )}
 
         {/* Overlay Badge */}
         <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 500, background: 'rgba(255,255,255,0.92)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700, color: '#025a9e', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '6px' }}>

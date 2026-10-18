@@ -7,7 +7,7 @@ import Trip from '../models/Trip.js';
 // @access  Public / Private
 export const generateTrip = async (req, res, next) => {
   try {
-    const { destination, travelers, startDate, endDate, duration, budget, currency, preferences } = req.body;
+    const { destination, destinationDetails, origin, travelers, startDate, endDate, duration, budget, currency, preferences } = req.body;
 
     if (!destination) {
       return res.status(400).json({ success: false, message: 'Destination is required' });
@@ -18,6 +18,8 @@ export const generateTrip = async (req, res, next) => {
     // Orchestrate complete planning pipeline
     const tripPlan = await planFullTrip({
       destination,
+      destinationDetails: destinationDetails || null,
+      origin: origin || null,
       travelers: travelers || { count: 1, type: 'Solo' },
       startDate: startDate || '',
       endDate: endDate || '',
@@ -80,7 +82,7 @@ export const optimizeBudget = async (req, res, next) => {
 // @access  Public / Private
 export const chat = async (req, res, next) => {
   try {
-    const { message, trip, chatHistory } = req.body;
+    const { message, trip, chatHistory, history } = req.body;
 
     if (!message) {
       return res.status(400).json({ success: false, message: 'Message is required' });
@@ -89,7 +91,7 @@ export const chat = async (req, res, next) => {
     const responseText = await chatWithAssistant({
       message,
       trip: trip || {},
-      chatHistory: chatHistory || [],
+      chatHistory: chatHistory || history || [],
     });
 
     res.json({

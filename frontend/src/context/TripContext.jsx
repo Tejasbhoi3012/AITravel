@@ -1,12 +1,14 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import * as aiService from '../services/aiService';
 import * as tripService from '../services/tripService';
+import { useNotifications } from './NotificationContext';
 
 const TripContext = createContext();
 
 const initialPlannerState = {
   destination: 'Goa',
   destinationDetails: null, // { name, country, placeId, latitude, longitude }
+  origin: null, // { name, latitude, longitude } — user's departure point
   travelers: { count: 2, type: 'Couple' },
   startDate: '',
   endDate: '',
@@ -21,10 +23,15 @@ const initialPlannerState = {
 };
 
 const createClientFallbackTrip = (state) => {
-  const dest = state.destination || 'Goa';
+  const dest = state.destination || 'Your Trip';
   const duration = Number(state.duration) || 3;
   const budget = Number(state.budget) || 1000;
   const count = Number(state.travelers?.count) || 1;
+  const baseLat = Number(state.destinationDetails?.latitude) || 0;
+  const baseLng = Number(state.destinationDetails?.longitude) || 0;
+  // Pins are only placed when the real destination coordinates are known —
+  // otherwise items render without coordinates instead of wrong ones.
+  const coord = (dLat, dLng) => (baseLat || baseLng ? { latitude: baseLat + dLat, longitude: baseLng + dLng } : {});
 
   const days = [];
   for (let i = 1; i <= duration; i++) {
@@ -42,8 +49,7 @@ const createClientFallbackTrip = (state) => {
           estimatedCost: Math.round((budget * 0.02) / duration),
           durationMinutes: 120,
           category: 'Sightseeing',
-          latitude: 15.2993,
-          longitude: 74.124,
+          ...coord(0, 0),
         },
         {
           id: `act_${i}_2`,
@@ -54,8 +60,7 @@ const createClientFallbackTrip = (state) => {
           estimatedCost: Math.round((budget * 0.03) / duration),
           durationMinutes: 150,
           category: 'Culture',
-          latitude: 15.305,
-          longitude: 74.130,
+          ...coord(0.006, 0.006),
         },
         {
           id: `act_${i}_3`,
@@ -66,8 +71,7 @@ const createClientFallbackTrip = (state) => {
           estimatedCost: Math.round((budget * 0.04) / duration),
           durationMinutes: 90,
           category: 'Dining',
-          latitude: 15.295,
-          longitude: 74.118,
+          ...coord(-0.004, -0.006),
         },
       ],
     });
@@ -85,8 +89,8 @@ const createClientFallbackTrip = (state) => {
     _id: `trip_${Date.now()}`,
     destination: dest,
     country: 'Featured Destination',
-    latitude: 15.2993,
-    longitude: 74.124,
+    latitude: baseLat,
+    longitude: baseLng,
     travelers: state.travelers || { count: 2, type: 'Couple' },
     duration,
     budget,
@@ -102,8 +106,7 @@ const createClientFallbackTrip = (state) => {
         address: `100 Coastline Blvd, ${dest}`,
         priceEstimate: '$$$',
         photos: ['https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'],
-        latitude: 15.302,
-        longitude: 74.128,
+        ...coord(0.003, 0.004),
         category: 'Luxury Resort',
       },
       {
@@ -114,8 +117,7 @@ const createClientFallbackTrip = (state) => {
         address: `Old Town District, ${dest}`,
         priceEstimate: '$$',
         photos: ['https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80'],
-        latitude: 15.295,
-        longitude: 74.120,
+        ...coord(-0.004, -0.004),
         category: 'Boutique Hotel',
       },
     ],
@@ -129,8 +131,7 @@ const createClientFallbackTrip = (state) => {
         cuisine: 'Seafood & Coastal',
         priceEstimate: '$$',
         photos: ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80'],
-        latitude: 15.298,
-        longitude: 74.125,
+        ...coord(-0.001, 0.001),
       },
       {
         placeId: 'r2',
@@ -141,8 +142,7 @@ const createClientFallbackTrip = (state) => {
         cuisine: 'International & Drinks',
         priceEstimate: '$$$',
         photos: ['https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80'],
-        latitude: 15.308,
-        longitude: 74.115,
+        ...coord(0.009, -0.009),
       },
     ],
     places: [
@@ -154,8 +154,7 @@ const createClientFallbackTrip = (state) => {
         address: `Fortification Point, ${dest}`,
         category: 'Landmark',
         photos: ['https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80'],
-        latitude: 15.312,
-        longitude: 74.135,
+        ...coord(0.013, 0.011),
       },
       {
         placeId: 'p2',
@@ -165,8 +164,7 @@ const createClientFallbackTrip = (state) => {
         address: `Valley Road, ${dest}`,
         category: 'Nature & Parks',
         photos: ['https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80'],
-        latitude: 15.290,
-        longitude: 74.140,
+        ...coord(-0.009, 0.016),
       },
     ],
     expenses: {
@@ -189,6 +187,7 @@ const createClientFallbackTrip = (state) => {
 };
 
 export const TripProvider = ({ children }) => {
+  const { addNotification } = useNotifications();
   const [plannerState, setPlannerState] = useState(initialPlannerState);
   const [currentTrip, setCurrentTrip] = useState(null);
   const [userTrips, setUserTrips] = useState([]);
@@ -240,12 +239,22 @@ export const TripProvider = ({ children }) => {
           trip = data.trip;
         }
       } catch (apiErr) {
+        if (apiErr?.response?.status === 401) {
+          throw new Error('Please log in to generate a trip.');
+        }
         console.warn('Backend offline, using client-side trip generation engine:', apiErr.message);
         trip = createClientFallbackTrip(payload);
       }
 
       if (trip) {
         setCurrentTrip(trip);
+        const place = (trip.destinationDetails?.name || trip.destination || 'your destination').split(',')[0];
+        const dayCount = trip.itinerary?.length || Number(payload.duration) || 0;
+        addNotification({
+          type: 'trip',
+          title: `Trip to ${place} is generated`,
+          message: `${dayCount}-day itinerary is ready to view`,
+        });
         setLoading(false);
         return trip;
       } else {
@@ -258,7 +267,7 @@ export const TripProvider = ({ children }) => {
     }
   };
 
-  const loadTrip = async (id) => {
+  const loadTrip = useCallback(async (id) => {
     setLoading(true);
     try {
       const data = await tripService.getTrip(id);
@@ -272,7 +281,7 @@ export const TripProvider = ({ children }) => {
       setLoading(false);
       throw err;
     }
-  };
+  }, []);
 
   const refreshUserTrips = async () => {
     try {
