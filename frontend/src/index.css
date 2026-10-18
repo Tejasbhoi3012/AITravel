@@ -3824,3 +3824,9 @@ html.dark .expense-breakdown-card { background: #121a28; border-color: #232c3b; 
 html.dark .expense-breakdown-card h3, html.dark .cat-val strong { color: #e6e9f0; }
 html.dark .cat-bar-header { color: #b7c0cd; }
 html.dark .progress-track { background: #1b2433; }
+
+html.dark .mockup-ai-msg { background: #141c2b; border: 1px solid #232c3b; color: #e6e9f0; }
+html.dark .chat-mockup-input-bar input { background: #0f1622; border-color: #2a3444; color: #e6e9f0; }
+html.dark .gm-price { background: rgba(15, 23, 42, 0.88); color: #e6e9f0; }
+html.dark .spec-grid h5 span { background: #1b2433; }
+html.dark .ov-fact { background: #1b2433; border-color: #2a3444; }
