@@ -23,7 +23,7 @@ Open two PowerShell terminals in the repository.
 
 ### 1. Configure the backend
 
-Create `server\.env` with your local settings:
+Create `backend\.env` with your local settings:
 
 ```env
 PORT=5000
@@ -40,7 +40,7 @@ GOOGLE_CLIENT_ID=your_google_oauth_client_id
 
 ### 2. Configure the frontend
 
-Create `AITravel\.env`:
+Create `frontend\.env`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api
@@ -54,14 +54,14 @@ Use the same Google OAuth client ID in both environment files. In its Google Clo
 In the backend terminal:
 
 ```powershell
-cd "D:\AI Project\server"
+cd "D:\AI Project\backend"
 npm install
 ```
 
 In the frontend terminal:
 
 ```powershell
-cd "D:\AI Project\AITravel"
+cd "D:\AI Project\frontend"
 npm install
 ```
 
@@ -96,7 +96,7 @@ Open the Vite URL shown in the frontend terminal, usually <http://localhost:5173
 | `VITE_API_BASE_URL` | Frontend | Backend API URL; defaults to `http://localhost:5000/api`. |
 | `VITE_GOOGLE_CLIENT_ID` | Frontend | Client ID used to display Google sign-in. |
 
-AI, Places, and Google sign-in features require their corresponding credentials. Keep backend secrets in `server\.env`; variables prefixed with `VITE_` are included in the browser app and must not contain private secrets.
+AI, Places, and Google sign-in features require their corresponding credentials. Keep backend secrets in `backend\.env`; variables prefixed with `VITE_` are included in the browser app and must not contain private secrets.
 
 ## Useful commands
 
@@ -104,18 +104,18 @@ Run these from the relevant directory:
 
 | Directory | Command | Description |
 | --- | --- | --- |
-| `server` | `npm run dev` | Start the API with automatic restart. |
-| `server` | `npm start` | Start the API normally. |
-| `AITravel` | `npm run dev` | Start the Vite development server. |
-| `AITravel` | `npm run build` | Build the frontend for production. |
-| `AITravel` | `npm run lint` | Run Oxlint. |
-| `AITravel` | `npm run preview` | Preview a production frontend build. |
+| `backend` | `npm run dev` | Start the API with automatic restart. |
+| `backend` | `npm start` | Start the API normally. |
+| `frontend` | `npm run dev` | Start the Vite development server. |
+| `frontend` | `npm run build` | Build the frontend for production. |
+| `frontend` | `npm run lint` | Run Oxlint. |
+| `frontend` | `npm run preview` | Preview a production frontend build. |
 
 ## Project structure
 
 ```text
-AITravel/   React, Vite, pages, components, and API client
-server/     Express API, authentication, database models, and integrations
+frontend/   React, Vite, pages, components, and API client
+backend/    Express API, authentication, database models, and integrations
 ```
 
 The backend exposes routes under `/api/auth`, `/api/trips`, `/api/places`, and `/api/ai`.
