@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrip } from '../context/TripContext';
+import { useNotifications } from '../context/NotificationContext';
 import { reverseGeocode, estimateTravel } from '../services/placesService';
 import { getCurrencyRates, convertAmount, CURRENCY_SYMBOLS } from '../services/currencyService';
 import {
@@ -123,8 +124,16 @@ const destinationData = {
 const PlanTripPage = () => {
   const navigate = useNavigate();
   const { plannerState, updatePlannerField, updatePreferenceList } = useTrip();
+  const { addNotification } = useNotifications();
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(() => {
+    try {
+      const saved = Number(sessionStorage.getItem('travelai_planner_step'));
+      return saved >= 1 && saved <= 6 ? saved : 1;
+    } catch {
+      return 1;
+    }
+  });
   const [destinationInput, setDestinationInput] = useState(plannerState.destination || 'Goa, India');
   const [selectedDestKey, setSelectedDestKey] = useState(plannerState.destination || 'Goa, India');
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
@@ -134,6 +143,33 @@ const PlanTripPage = () => {
   const [geoError, setGeoError] = useState('');
   const [travelEstimate, setTravelEstimate] = useState(null);
   const [fxRates, setFxRates] = useState(null);
+
+  // Keep the local input mirrors in sync when a saved draft is restored.
+  useEffect(() => {
+    setDestinationInput(plannerState.destination || 'Goa, India');
+    setSelectedDestKey(plannerState.destination || 'Goa, India');
+  }, [plannerState.destination]);
+
+  useEffect(() => {
+    setOriginInput(plannerState.origin?.name || '');
+  }, [plannerState.origin]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('travelai_planner_step', String(step));
+    } catch {
+      // storage unavailable — step stays in memory for this session
+    }
+  }, [step]);
+
+  const handleSaveDraft = () => {
+    addNotification({
+      type: 'trip',
+      title: 'Draft saved',
+      message: `Your ${plannerState.destination || 'trip'} plan was saved — pick it up anytime from Plan a Trip.`,
+    });
+    navigate('/my-trips');
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -463,7 +499,7 @@ const PlanTripPage = () => {
             </label>
 
             <div className="plan-v2-formfoot">
-              <button className="save-draft-btn" onClick={() => navigate('/my-trips')}>Save Draft (⌘S)</button>
+              <button className="save-draft-btn" onClick={handleSaveDraft}>Save Draft (⌘S)</button>
               <button className="btn-continue-pill black" onClick={handleNextStep}>
                 <span>Continue to Travelers &amp; Dates</span>
                 <ArrowRight size={16} />

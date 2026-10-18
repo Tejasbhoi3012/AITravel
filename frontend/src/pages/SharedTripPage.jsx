@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as tripService from '../services/tripService';
 import { MapPin, Calendar, Zap, Share2, Download, LayoutGrid } from 'lucide-react';
-import ItinerarySection from '../components/ItinerarySection';
 import HotelsSection from '../components/HotelsSection';
 import RestaurantsSection from '../components/RestaurantsSection';
 import ExpenseDashboard from '../components/ExpenseDashboard';
@@ -176,7 +175,7 @@ const SharedTripPage = () => {
       {!trip && activeTab !== 'itinerary' && activeTab !== 'overview' && (
         <div style={{ marginTop: 18, background: '#fff', border: '1px solid #e9e9ee', borderRadius: 14, padding: 22, fontSize: '0.85rem', color: '#52525b' }}>
           {activeTab === 'map' && 'Interactive map loads with the live shared trip link.'}
-          {activeTab === 'hotels' && <ItinerarySection itinerary={[]} currency="INR" />}
+          {activeTab === 'hotels' && 'Hotel shortlist syncs with the live shared trip link.'}
           {activeTab === 'restaurants' && 'Restaurant shortlist syncs with the live shared trip link.'}
           {activeTab === 'expenses' && 'Audited expense ledger syncs with the live shared trip link.'}
           {activeTab === 'places' && 'Place markers sync with the live shared trip link.'}

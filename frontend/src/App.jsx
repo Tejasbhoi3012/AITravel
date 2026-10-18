@@ -7,6 +7,7 @@ import { TripProvider } from './context/TripContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import WelcomeModal from './components/WelcomeModal';
 
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -84,6 +85,7 @@ function App() {
             </main>
             <Footer />
           </div>
+          <WelcomeModal />
             </Router>
           </TripProvider>
         </NotificationProvider>

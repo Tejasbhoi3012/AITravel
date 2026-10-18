@@ -3830,3 +3830,300 @@ html.dark .chat-mockup-input-bar input { background: #0f1622; border-color: #2a3
 html.dark .gm-price { background: rgba(15, 23, 42, 0.88); color: #e6e9f0; }
 html.dark .spec-grid h5 span { background: #1b2433; }
 html.dark .ov-fact { background: #1b2433; border-color: #2a3444; }
+
+/* ==========================================================================
+   WELCOME MODAL — post-authentication greeting (fully responsive)
+   ========================================================================== */
+
+.welcome-backdrop {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(2, 6, 16, 0.62);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; overflow-y: auto;
+  animation: welcome-fade 0.25s ease-out;
+}
+
+.welcome-dialog {
+  position: relative; overflow: hidden;
+  width: 100%; max-width: 430px;
+  background: radial-gradient(420px 220px at 85% -10%, rgba(56, 189, 248, 0.22), transparent 70%),
+              linear-gradient(155deg, #060b14, #0b1b33 70%, #0a1626);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 24px;
+  padding: 26px 28px 22px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 30px 80px rgba(2, 6, 16, 0.55);
+  animation: welcome-pop 0.34s cubic-bezier(0.21, 1.02, 0.55, 1);
+  outline: none;
+}
+
+.welcome-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(260px 160px at 50% -20%, rgba(251, 191, 36, 0.14), transparent 72%);
+  pointer-events: none;
+}
+
+.welcome-top {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 20px;
+}
+
+.welcome-pill {
+  font-size: 0.56rem; letter-spacing: 1px; font-weight: 700;
+  color: #7dd3fc; border: 1px solid rgba(125, 211, 252, 0.3);
+  background: rgba(125, 211, 252, 0.09);
+  padding: 5px 12px; border-radius: 999px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+.welcome-close {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1; cursor: pointer; border-radius: 10px;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.welcome-close:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+
+.welcome-avatar-wrap { position: relative; z-index: 1; display: inline-flex; margin-bottom: 14px; }
+
+.welcome-avatar {
+  width: 68px; height: 68px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.35rem; font-weight: 800; letter-spacing: 1px;
+  background: linear-gradient(140deg, #7c3aed, #2563eb 60%, #06b6d4);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.45);
+  overflow: hidden;
+}
+.welcome-avatar img {
+  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+  display: block;
+}
+
+.welcome-avatar-badge {
+  position: absolute; right: -4px; bottom: -4px;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #fbbf24; color: #0f172a;
+  border: 2px solid #0b1b33;
+}
+
+.welcome-greeting {
+  position: relative; z-index: 1; display: block;
+  font-size: 0.58rem; letter-spacing: 1.6px; font-weight: 700;
+  color: #94a3b8; margin-bottom: 6px;
+}
+
+.welcome-title {
+  position: relative; z-index: 1;
+  font-size: clamp(1.55rem, 5.4vw, 2rem);
+  font-weight: 700; line-height: 1.15; margin-bottom: 10px;
+}
+.welcome-title .gold { color: #fbbf24; }
+
+.welcome-sub {
+  position: relative; z-index: 1;
+  font-size: 0.83rem; line-height: 1.55;
+  color: #94a3b8; max-width: 330px; margin: 0 auto 20px;
+}
+
+.welcome-stats {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-bottom: 20px;
+}
+.welcome-stat {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 13px; padding: 11px 6px 9px;
+  display: flex; flex-direction: column; gap: 3px;
+  min-width: 0;
+}
+.welcome-stat strong { font-size: 0.95rem; font-weight: 800; color: #fff; }
+.welcome-stat span {
+  font-size: 0.5rem; letter-spacing: 0.7px; font-weight: 700;
+  color: #7dd3fc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.welcome-actions {
+  position: relative; z-index: 1;
+  display: flex; gap: 10px; margin-bottom: 18px;
+}
+.welcome-btn-primary,
+.welcome-btn-secondary {
+  flex: 1; min-width: 0;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border-radius: 999px; padding: 12px 16px;
+  font-size: 0.82rem; font-weight: 800; cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.welcome-btn-primary {
+  background: #fbbf24; color: #0f172a; border: none;
+  box-shadow: 0 8px 22px rgba(251, 191, 36, 0.28);
+}
+.welcome-btn-primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.welcome-btn-secondary {
+  background: rgba(255, 255, 255, 0.06); color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.welcome-btn-secondary:hover { background: rgba(255, 255, 255, 0.13); transform: translateY(-1px); }
+
+.welcome-foot {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; flex-wrap: wrap;
+  font-size: 0.52rem; letter-spacing: 0.7px; font-weight: 700;
+  color: #5b6b80; padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.welcome-green { color: #34d399; }
+
+@keyframes welcome-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes welcome-pop {
+  from { opacity: 0; transform: translateY(22px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 480px) {
+  .welcome-backdrop { padding: 12px; align-items: flex-start; }
+  .welcome-dialog { margin-top: 10px; max-width: 100%; padding: 20px 16px 16px; border-radius: 20px; }
+  .welcome-top { margin-bottom: 14px; }
+  .welcome-pill { font-size: 0.5rem; padding: 4px 10px; }
+  .welcome-avatar { width: 58px; height: 58px; font-size: 1.15rem; }
+  .welcome-sub { font-size: 0.78rem; margin-bottom: 16px; }
+  .welcome-stats { gap: 6px; margin-bottom: 16px; }
+  .welcome-stat { padding: 9px 4px 7px; border-radius: 11px; }
+  .welcome-stat strong { font-size: 0.82rem; }
+  .welcome-stat span { font-size: 0.44rem; }
+  .welcome-actions { flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .welcome-btn-primary, .welcome-btn-secondary { padding: 12px 14px; }
+  .welcome-foot { justify-content: center; text-align: center; }
+}
+
+@media (max-width: 340px) {
+  .welcome-stats { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-backdrop, .welcome-dialog { animation: none; }
+}
+
+/* ==========================================================================
+   MOBILE FRIENDLINESS — ROUND 4
+   (trip-card cost grid, home chip rows, workspace heading)
+   ========================================================================== */
+
+/* Trip cards: 4 money columns overflow on narrow phones — collapse to 2x2 */
+@media (max-width: 480px) {
+  .arch-costs { grid-template-columns: 1fr 1fr; }
+}
+
+/* Let the mock chat header, quick-action chips and CTA buttons wrap instead
+   of squeezing into unreadable widths on small screens. */
+.chat-mockup-header { flex-wrap: wrap; row-gap: 4px; }
+.ai-quick-actions-row { flex-wrap: wrap; }
+.cta-actions-row { flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .ws-v2 .workspace-heading { font-size: 1.5rem; }
+  .arch-foot { flex-wrap: wrap; row-gap: 8px; }
+}
+
+/* ==========================================================================
+   ITINERARY SECTION (day tabs + activity timeline, fully responsive)
+   ========================================================================== */
+
+.itinerary-section { display: flex; flex-direction: column; gap: 16px; text-align: left; }
+
+.day-tabs-container { overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.day-tabs { display: flex; gap: 8px; min-width: max-content; }
+.day-tab-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: #fff; border: 1px solid #e9e9ee; border-radius: 12px;
+  padding: 8px 14px; cursor: pointer; text-align: left;
+}
+.day-tab-btn.active { background: #09090b; border-color: #09090b; }
+.day-tab-num { font-size: 0.68rem; font-weight: 800; color: #18181b; }
+.day-tab-title { font-size: 0.6rem; color: #71717a; }
+.day-tab-btn.active .day-tab-num { color: #fff; }
+.day-tab-btn.active .day-tab-title { color: #a1a1aa; }
+
+.day-plan-card { background: #fff; border: 1px solid #e9e9ee; border-radius: 14px; padding: 18px; }
+.day-plan-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.day-badge {
+  display: inline-block; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.8px;
+  color: #0b5cad; background: #f0f7ff; border: 1px solid #bfdbfe;
+  padding: 3px 10px; border-radius: 999px;
+}
+.day-title { font-size: 1.1rem; font-weight: 800; color: #101014; margin-top: 6px; }
+.day-theme { font-size: 0.7rem; color: #71717a; margin-top: 2px; }
+.btn-add-activity {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #09090b; color: #fff; border: none; border-radius: 999px;
+  padding: 9px 16px; font-size: 0.74rem; font-weight: 700; cursor: pointer;
+}
+
+.timeline-container { display: flex; flex-direction: column; }
+.timeline-item { display: flex; gap: 12px; }
+.timeline-marker { display: flex; flex-direction: column; align-items: center; }
+.timeline-number {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: #09090b; color: #fff; font-size: 0.68rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.timeline-item:not(:last-child) .timeline-marker::after {
+  content: ''; flex: 1; width: 1px; background: #e4e4e7; margin: 4px 0;
+}
+.timeline-content { flex: 1; min-width: 0; padding-bottom: 18px; }
+
+.activity-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.activity-time-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.68rem; font-weight: 700; color: #0b5cad;
+  background: #f0f7ff; border-radius: 999px; padding: 3px 10px;
+}
+.activity-actions { display: flex; align-items: center; gap: 6px; }
+.btn-map-pin, .btn-delete-act {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #fff; border: 1px solid #e4e4e7; border-radius: 8px;
+  padding: 5px 9px; font-size: 0.66rem; font-weight: 700; color: #3f3f46; cursor: pointer;
+}
+.btn-delete-act { color: #b91c1c; border-color: #fecaca; }
+.activity-title { font-size: 0.92rem; font-weight: 800; color: #101014; }
+.activity-desc { font-size: 0.74rem; color: #71717a; margin: 4px 0 8px; }
+.activity-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.activity-tag, .activity-duration, .activity-cost {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.62rem; font-weight: 700; color: #3f3f46;
+  background: #f4f4f5; border-radius: 999px; padding: 3px 10px;
+}
+.no-activities { font-size: 0.8rem; color: #71717a; padding: 10px 0; }
+
+/* Scoped so the AI optimizer modal footer (.opt-foot) keeps its own layout */
+.itinerary-section .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.itinerary-section .form-row .form-group { flex: 1 1 140px; min-width: 0; }
+.itinerary-section .modal-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+@media (max-width: 640px) {
+  .day-plan-card { padding: 14px; }
+  .day-plan-header { flex-direction: column; }
+  .btn-add-activity { width: 100%; justify-content: center; }
+  .itinerary-section .modal-actions .btn-primary,
+  .itinerary-section .modal-actions .btn-secondary { flex: 1; justify-content: center; }
+}
+
+html.dark .day-plan-card, html.dark .day-tab-btn,
+html.dark .btn-map-pin { background: #121a28; border-color: #232c3b; }
+html.dark .day-tab-btn.active { background: #e8ecf3; border-color: #e8ecf3; }
+html.dark .day-tab-btn.active .day-tab-num { color: #0b0f19; }
+html.dark .day-title, html.dark .activity-title, html.dark .day-tab-num { color: #e6e9f0; }
+html.dark .activity-tag, html.dark .activity-duration, html.dark .activity-cost { background: #1b2433; color: #b7c0cd; }
