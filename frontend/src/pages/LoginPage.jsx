@@ -134,7 +134,7 @@ const LoginPage = () => {
             </div>
 
             <div className="form-group">
-              <label>PASSWORD <Link to="/register" className="forgot-link">Forgot password?</Link></label>
+              <label>PASSWORD</label>
               <div className="input-with-icon">
                 <Lock size={16} className="input-icon" />
                 <input

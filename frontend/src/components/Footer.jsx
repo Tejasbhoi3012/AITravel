@@ -8,10 +8,8 @@ const CONTACT_URL = `mailto:${EMAIL}`;
 
 const QUICK_LINKS = [
   { label: 'Home', to: '/' },
-  { label: 'Explore Destinations', to: '/' },
   { label: 'AI Trip Planner', to: '/plan' },
   { label: 'My Trips', to: '/my-trips' },
-  { label: 'About', to: '/' },
 ];
 
 const CONNECT_LINKS = [
@@ -89,10 +87,6 @@ const Footer = () => {
         <span>© 2026 TravelAI. All rights reserved.</span>
         <div className="footer-legal-links">
           <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub Repository</a>
-          <span className="legal-dot">•</span>
-          <a href="#privacy">Privacy Policy</a>
-          <span className="legal-dot">•</span>
-          <a href="#terms">Terms of Service</a>
         </div>
       </div>
     </footer>

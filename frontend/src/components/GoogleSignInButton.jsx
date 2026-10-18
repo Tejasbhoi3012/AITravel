@@ -27,6 +27,7 @@ const GoogleSignInButton = ({ onError }) => {
   const { googleLogin } = useAuth();
   const navigate = useNavigate();
   const btnRef = useRef(null);
+  const wrapRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
 
@@ -38,6 +39,20 @@ const GoogleSignInButton = ({ onError }) => {
       return;
     }
     let cancelled = false;
+
+    // GIS renders a fixed-width iframe; keep it inside the form panel on phones.
+    const renderButton = () => {
+      if (!btnRef.current || !window.google?.accounts?.id) return;
+      const available = wrapRef.current?.clientWidth || 320;
+      const width = Math.max(200, Math.min(320, Math.floor(available)));
+      btnRef.current.innerHTML = '';
+      window.google.accounts.id.renderButton(btnRef.current, {
+        theme: 'outline',
+        size: 'large',
+        width,
+        text: 'continue_with',
+      });
+    };
 
     loadGisScript()
       .then(() => {
@@ -60,12 +75,8 @@ const GoogleSignInButton = ({ onError }) => {
             }
           },
         });
-        window.google.accounts.id.renderButton(btnRef.current, {
-          theme: 'outline',
-          size: 'large',
-          width: 320,
-          text: 'continue_with',
-        });
+        renderButton();
+        window.addEventListener('resize', renderButton);
       })
       .catch(() => {
         if (!cancelled) setUnavailable(true);
@@ -73,6 +84,7 @@ const GoogleSignInButton = ({ onError }) => {
 
     return () => {
       cancelled = true;
+      window.removeEventListener('resize', renderButton);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
@@ -80,13 +92,13 @@ const GoogleSignInButton = ({ onError }) => {
   if (unavailable) return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: 12 }}>
+    <div ref={wrapRef} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: 12, width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700 }}>
         <span style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
         <span>OR</span>
         <span style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
       </div>
-      <div ref={btnRef} style={{ opacity: loading ? 0.6 : 1, minHeight: 40 }} />
+      <div ref={btnRef} style={{ opacity: loading ? 0.6 : 1, minHeight: 40, maxWidth: '100%', overflow: 'hidden' }} />
       {loading && (
         <p style={{ fontSize: '0.78rem', color: '#64748b' }}>Signing in with Google...</p>
       )}

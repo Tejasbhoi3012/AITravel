@@ -3554,3 +3554,279 @@ html.dark .workspace-heading, html.dark .wp-badge, html.dark .ws-meta-pill, html
 html.dark .ws-tab.active, html.dark .ws-v2-crumb, html.dark .ws-v2-terminal, html.dark .years-pill {
   color: #e6e9f0;
 }
+
+/* ==========================================================================
+   MOBILE FRIENDLINESS — ROUND 2
+   (auth pages, custom journey planner, workspace, shared, home, misc)
+   ========================================================================== */
+
+/* --- Previously undefined classes (loading states, planner steps, errors) --- */
+.page-loading-spinner {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 90px 20px; text-align: center;
+  font-size: 0.86rem; color: #64748b;
+}
+.page-loading-spinner .spinner,
+.spinner {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid #dbe4f0; border-top-color: #0b5cad;
+  animation: spin 0.9s linear infinite;
+}
+.spin { animation: spin 0.9s linear infinite; }
+
+.selection-card {
+  background: #fff; border: 1px solid #e4e4e7; border-radius: 12px; padding: 16px;
+  cursor: pointer; transition: border-color 0.15s ease-out, background-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+.selection-card:hover { border-color: #0b5cad; background: #f6fafe; }
+.selection-card.selected { border-color: #09090b; background: #f4f4f5; box-shadow: 0 0 0 2px rgba(9, 9, 11, 0.08); }
+.selection-card h4 { font-size: 0.9rem; font-weight: 700; color: #18181b; margin-bottom: 4px; }
+.selection-card p { font-size: 0.74rem; color: #71717a; line-height: 1.45; }
+
+.range-slider { width: 100%; accent-color: #0b5cad; }
+
+.generation-error-box { text-align: center; padding: 26px 10px; }
+.generation-error-box .error-icon { color: #dc2626; margin-bottom: 8px; }
+.generation-error-box h3 { font-size: 1.1rem; font-weight: 800; color: #18181b; margin-bottom: 6px; }
+.generation-error-box p { font-size: 0.82rem; color: #52525b; margin-bottom: 16px; }
+.error-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #09090b; color: #fff; border: none; border-radius: 999px;
+  padding: 11px 22px; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+}
+.btn-primary:disabled { opacity: 0.7; cursor: wait; }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #fff; color: #27272a; border: 1px solid #e4e4e7; border-radius: 999px;
+  padding: 11px 22px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+
+/* --- Auth pages: tappable controls + card order on phones --- */
+.form-top-row { flex-wrap: wrap; gap: 6px; }
+.eye-btn { padding: 10px; margin-right: -10px; align-items: center; justify-content: center; }
+.check-box { width: 24px; height: 24px; min-width: 24px; }
+.remember-row { gap: 10px; }
+
+/* --- Plan page ("Design Your Custom Journey") --- */
+.plan-v2-toprow { flex-wrap: wrap; }
+.plan-v2-sysloc { overflow-wrap: anywhere; }
+.plan-header-row { flex-wrap: wrap; gap: 16px; }
+.plan-v2-formhead { flex-wrap: wrap; gap: 10px; }
+.plan-v2-fieldrow { flex-wrap: wrap; gap: 8px; }
+.plan-v2-formfoot { flex-wrap: wrap; gap: 12px; }
+.currency-row { flex-wrap: wrap; }
+.assembly-right { flex-wrap: wrap; }
+
+/* --- Home page --- */
+.hero-cta-group {
+  display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+  margin-bottom: 22px;
+}
+.hero-cta-group .btn-hero-primary,
+.hero-cta-group .btn-hero-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.proof-pill { flex-wrap: wrap; justify-content: center; row-gap: 4px; border-radius: 18px; }
+.filter-pills-group { flex-wrap: wrap; }
+.expense-foot-row { flex-wrap: wrap; gap: 8px; }
+
+/* --- Trip details workspace --- */
+.workspace-actions-group { flex-wrap: wrap; }
+.seq-head { flex-wrap: wrap; }
+
+/* --- My Trips --- */
+.arch-foot { flex-wrap: wrap; gap: 10px; }
+
+/* --- Profile --- */
+.sync-row { flex-wrap: wrap; }
+
+/* --- Generating page --- */
+.gen-card-head { flex-wrap: wrap; gap: 8px; }
+.gen-card-foot { flex-wrap: wrap; gap: 10px; }
+
+/* --- Shared trip page --- */
+.shared-days-bar { overflow-x: auto; }
+.feed-topline { flex-wrap: wrap; row-gap: 4px; }
+
+/* --- Small screens --- */
+@media (max-width: 900px) {
+  .auth-form-panel { order: -1; }
+  .nav-bell-btn, .theme-toggle-btn, .nav-hamburger { padding: 9px; }
+}
+
+@media (max-width: 640px) {
+  /* Custom journey planner */
+  .plan-header-row { flex-direction: column; }
+  .plan-v2 .ai-synthesis-widget { width: 100%; }
+  .plan-v2-form, .plan-v2 .plan-form-card, .plan-form-card { padding: 18px 14px; }
+  .plan-v2-preview { padding: 14px; }
+  .preview-img-wrap img { height: 220px; }
+  .plan-v2-formfoot { flex-direction: column-reverse; align-items: stretch; }
+  .plan-v2-formfoot .btn-continue-pill { width: 100%; justify-content: center; }
+  .plan-v2-formfoot .save-draft-btn { width: 100%; padding: 12px; border: 1px solid #e4e4e7; border-radius: 12px; }
+  .planner-bottom-action-bar { justify-content: stretch; }
+  .planner-bottom-action-bar .btn-continue-pill { width: 100%; justify-content: center; }
+  .plan-v2-toprow { gap: 8px; }
+  .form-step-heading { font-size: 1.3rem; }
+
+  /* Home page */
+  .widget-step-btns button { width: 30px; height: 30px; }
+  .widget-tag-chip { padding: 6px 12px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 999px; }
+  .dest-btn-explore { padding: 8px 16px; }
+  .btn-widget-submit { width: 100%; }
+
+  /* Trip details workspace */
+  .tl-card { flex-wrap: wrap; }
+  .tl-side { flex-basis: 100%; justify-content: space-between; }
+  .nodes-note { display: none; }
+  .sync-foot { flex-direction: column; align-items: flex-start; }
+
+  /* My Trips */
+  .audit-v2-header { padding: 18px 16px; }
+  .audit-v2-headerright { align-items: flex-start; width: 100%; }
+  .audit-v2-headerright .currency-row { justify-content: flex-start; }
+
+  /* Profile */
+  .profile-card { padding: 26px 18px 30px; }
+}
+
+/* --- Dark theme for the new surfaces --- */
+html.dark .page-loading-spinner { color: #8b95a7; }
+html.dark .spinner, html.dark .page-loading-spinner .spinner { border-color: #232c3b; border-top-color: #6ea8ff; }
+html.dark .selection-card { background: #121a28; border-color: #232c3b; }
+html.dark .selection-card:hover { background: #16202f; border-color: #6ea8ff; }
+html.dark .selection-card.selected { background: #1b2433; border-color: #6ea8ff; box-shadow: 0 0 0 2px rgba(110, 168, 255, 0.2); }
+html.dark .selection-card h4 { color: #e6e9f0; }
+html.dark .selection-card p { color: #8b95a7; }
+html.dark .btn-primary { background: #e8ecf3; color: #0b0f19; }
+html.dark .btn-secondary { background: #121a28; border-color: #2a3444; color: #d3d9e3; }
+html.dark .generation-error-box h3 { color: #e6e9f0; }
+html.dark .generation-error-box p { color: #8b95a7; }
+html.dark .save-draft-btn { border-color: #2a3444; }
+
+/* ==========================================================================
+   MOBILE FRIENDLINESS — ROUND 3
+   (optimizer modal overlay, chat close button, expense dashboard)
+   ========================================================================== */
+
+/* --- Shared modal overlay primitives (were missing entirely) --- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 350;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; overflow-y: auto;
+}
+.modal-dialog {
+  width: 100%; max-width: 560px;
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+  padding: 22px;
+}
+.modal-close {
+  background: none; border: none; color: #64748b; cursor: pointer;
+  padding: 8px; margin: -8px -8px -8px 0; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: #f4f4f5; color: #18181b; }
+
+/* --- AI Budget Optimizer: make it a real centered overlay --- */
+.opt-backdrop {
+  position: fixed; inset: 0; z-index: 350;
+  background: rgba(9, 9, 11, 0.5);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px; overflow-y: auto;
+}
+.opt-dialog {
+  width: 100%; max-width: 640px; max-height: calc(100vh - 36px);
+  background: #fff; border-radius: 20px; border: 1px solid #e9e9ee;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+}
+.opt-body { overflow-y: auto; min-height: 0; }
+.opt-foot { flex-wrap: wrap; gap: 10px; }
+.optimizer-loading { text-align: center; padding: 30px 0; }
+.optimizer-loading .spinner { margin: 0 auto 10px; }
+.optimizer-error { text-align: center; padding: 20px 0; }
+.optimizer-error p { font-size: 0.84rem; color: #b91c1c; margin-bottom: 12px; }
+
+/* --- Chat drawer close button --- */
+.chat-close-btn {
+  background: none; border: none; color: #64748b; cursor: pointer;
+  padding: 6px; border-radius: 8px; display: flex; align-items: center;
+}
+.chat-close-btn:hover { background: #f1f5f9; color: #18181b; }
+
+/* --- Expense dashboard (Expenses tab was rendering unstyled) --- */
+.expense-dashboard { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+.expense-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.expense-stats-grid .stat-label { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #71717a; margin-bottom: 6px; }
+.expense-stats-grid .stat-value { font-size: 1.35rem; font-weight: 800; color: #101014; line-height: 1.2; }
+.expense-stats-grid .stat-unit { font-size: 0.72rem; font-weight: 700; color: #71717a; }
+.expense-stats-grid .stat-card.highlight { border-color: #bfdbfe; background: #f6fafe; }
+.expense-stats-grid .stat-card.success { border-color: #d1fae5; background: #f0fdf4; }
+.expense-stats-grid .stat-card.alert { border-color: #fecaca; background: #fef2f2; }
+.expense-stats-grid .stat-card.alert .stat-value { color: #b91c1c; }
+.expense-stats-grid .stat-card.success .stat-value { color: #047857; }
+
+.ai-optimizer-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap;
+  background: radial-gradient(300px 120px at 90% 0%, rgba(56, 189, 248, 0.25), transparent 70%), linear-gradient(135deg, #060b14, #0b1b33);
+  border-radius: 14px; padding: 18px 20px; color: #fff;
+}
+.ai-optimizer-banner .banner-left { display: flex; align-items: center; gap: 14px; }
+.ai-optimizer-banner h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 3px; }
+.ai-optimizer-banner p { font-size: 0.76rem; color: #94a3b8; }
+.sparkle-circle {
+  width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex; align-items: center; justify-content: center; color: #7dd3fc;
+}
+.btn-ai-optimize {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #fbbf24; color: #0f172a; border: none; border-radius: 999px;
+  padding: 11px 22px; font-size: 0.82rem; font-weight: 800; cursor: pointer;
+  white-space: nowrap;
+}
+.btn-ai-optimize:hover { filter: brightness(1.05); }
+
+.expense-breakdown-card { background: #fff; border: 1px solid #e9e9ee; border-radius: 14px; padding: 20px; }
+.expense-breakdown-card h3 { font-size: 0.95rem; font-weight: 800; color: #101014; margin-bottom: 16px; }
+.category-bars { display: flex; flex-direction: column; gap: 14px; }
+.cat-bar-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 0.8rem; color: #3f3f46; flex-wrap: wrap; }
+.cat-val strong { color: #101014; }
+.progress-track { height: 8px; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease-out; }
+
+@media (max-width: 640px) {
+  .modal-backdrop, .opt-backdrop { padding: 12px; align-items: flex-start; }
+  .modal-dialog { margin-top: 12px; padding: 18px; }
+  .opt-dialog { margin-top: 12px; max-height: calc(100vh - 24px); }
+  .ai-optimizer-banner { padding: 16px; }
+  .btn-ai-optimize { width: 100%; justify-content: center; }
+  .expense-breakdown-card { padding: 16px; }
+}
+
+html.dark .modal-dialog, html.dark .opt-dialog { background: #121a28; border-color: #232c3b; }
+html.dark .modal-close { color: #8b95a7; }
+html.dark .modal-close:hover, html.dark .chat-close-btn:hover { background: #1b2433; color: #e6e9f0; }
+html.dark .chat-close-btn { color: #8b95a7; }
+html.dark .expense-stats-grid .stat-value { color: #e6e9f0; }
+html.dark .expense-stats-grid .stat-card.highlight { background: #10233a; border-color: #1d3a5c; }
+html.dark .expense-stats-grid .stat-card.success { background: #10251a; border-color: #1d4a33; }
+html.dark .expense-stats-grid .stat-card.alert { background: #2a1518; border-color: #7f1d1d; }
+html.dark .expense-breakdown-card { background: #121a28; border-color: #232c3b; }
+html.dark .expense-breakdown-card h3, html.dark .cat-val strong { color: #e6e9f0; }
+html.dark .cat-bar-header { color: #b7c0cd; }
+html.dark .progress-track { background: #1b2433; }
+
+html.dark .mockup-ai-msg { background: #141c2b; border: 1px solid #232c3b; color: #e6e9f0; }
+html.dark .chat-mockup-input-bar input { background: #0f1622; border-color: #2a3444; color: #e6e9f0; }
+html.dark .gm-price { background: rgba(15, 23, 42, 0.88); color: #e6e9f0; }
+html.dark .spec-grid h5 span { background: #1b2433; }
+html.dark .ov-fact { background: #1b2433; border-color: #2a3444; }

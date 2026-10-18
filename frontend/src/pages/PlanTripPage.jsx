@@ -549,9 +549,9 @@ const PlanTripPage = () => {
             className="range-slider"
             style={{ margin: '20px 0' }}
           />
-          <div style={{ display: 'flex', gap: 16 }}>
-            <input type="date" value={plannerState.startDate} onChange={(e) => updatePlannerField('startDate', e.target.value)} style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 8 }} />
-            <input type="date" value={plannerState.endDate} onChange={(e) => updatePlannerField('endDate', e.target.value)} style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 8 }} />
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <input type="date" value={plannerState.startDate} onChange={(e) => updatePlannerField('startDate', e.target.value)} style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 8, flex: '1 1 150px', minWidth: 0, boxSizing: 'border-box' }} />
+            <input type="date" value={plannerState.endDate} onChange={(e) => updatePlannerField('endDate', e.target.value)} style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 8, flex: '1 1 150px', minWidth: 0, boxSizing: 'border-box' }} />
           </div>
           <div className="planner-bottom-action-bar">
             <button className="btn-continue-pill black" onClick={handleNextStep}>
@@ -615,7 +615,7 @@ const PlanTripPage = () => {
           <div className="form-step-tag">STEP 05 • FINANCIAL TARGET</div>
           <h2 className="form-step-heading">Set Estimated Total Budget</h2>
           <p className="form-step-sub">We forecast flights, hotels, food, and activities down to the rupee.</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#09090b' }}>{currencySymbols[plannerState.currency] || '₹'}</span>
             <input
               type="number"
@@ -627,7 +627,7 @@ const PlanTripPage = () => {
                 updatePlannerField('budget', raw === '' || !Number.isFinite(parsed) ? 0 : Math.max(0, parsed));
               }}
               placeholder="50000"
-              style={{ fontSize: '1.8rem', fontWeight: 800, padding: '8px 16px', border: '1px solid #cbd5e1', borderRadius: 8, width: 240 }}
+              style={{ fontSize: '1.8rem', fontWeight: 800, padding: '8px 16px', border: '1px solid #cbd5e1', borderRadius: 8, flex: '1 1 200px', minWidth: 0, maxWidth: 240, boxSizing: 'border-box' }}
             />
           </div>
           <div className="currency-row" style={{ marginBottom: 10 }}>

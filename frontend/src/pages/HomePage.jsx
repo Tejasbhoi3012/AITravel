@@ -473,7 +473,7 @@ const HomePage = () => {
       {/* ================= TESTIMONIALS ================= */}
       <section className="section-wrapper testimonials-center">
         <div className="rating-stars-row">★★★★★</div>
-        <h2 className="section-headline centered">Trusted by 250,000+ Modern Travelers</h2>
+        <h2 className="section-headline centered">trusted by 250,000+ modern travelers</h2>
         <div className="testimonials-grid">
           <div className="testimonial-card">
             <div className="rating-stars-row small">★★★★★</div>
